@@ -338,3 +338,70 @@ Efeito colateral conhecido: entre a migração e o deploy seguinte, a versão pu
 | Lint | `npm run lint` | 0 problemas |
 | Testes | `npm test` | 55 passando (4 arquivos) |
 | Restrições no banco | inserções inválidas no Neon | recusadas |
+
+---
+
+## Etapa 4 — Fase 2: núcleo (14/10/2026)
+
+**Objetivo:** login do gestor, `POST /api/agent-events` completo, regras R1–R4, montagem do "Hoje", auditoria e testes de integração (§7, §8, §11 e §13 do plano). Decisões D27–D33.
+
+### 4.1 Dependências
+```bash
+npm install zod@^4.6.7 ws@^8 server-only
+npm install -D @electric-sql/pglite @types/ws
+npx tsc --noEmit && npm test       # código existente compatível com o zod 4
+```
+Consulta à documentação que vem com o Next 16 (`node_modules/next/dist/docs`): o `middleware.ts` virou `proxy.ts`, roda em Node e não deve ser a única proteção.
+
+### 4.2 Autenticação e segurança
+- `lib/auth/token.ts`: sessão assinada (HMAC-SHA256), senha e Bearer comparados em tempo constante.
+- `lib/auth/session.ts`: cookie `httpOnly`, `sameSite=lax`, `secure` em produção, 7 dias.
+- `proxy.ts`: exige sessão em tudo, exceto `/login`, `/api/agent-events` e `/api/agenda/hoje`.
+- `app/(auth)/login`: formulário com rótulo visível e erro anunciado (`role="alert"`); `app/logout` por POST.
+- `/api/crm` e `/saude` conferem a sessão de novo; `next.config.ts` com CSP básica, `nosniff`, `Referrer-Policy`, `X-Frame-Options: DENY`, sem `X-Powered-By`.
+- Segredos gerados aleatoriamente no `.env.local` (senha da demo, `SESSION_SECRET`, `AGENT_API_TOKEN`), sem exibir valores.
+
+Verificação local (`npx next start`): sem login, `/` e `/saude` → 307 para `/login`; `/api/crm` → 401; cookie forjado → 401; cabeçalhos presentes. Commit `b24a76c`.
+
+### 4.3 Regras e painel Hoje
+- `lib/rules/auto-tasks.ts`: `computeAutoTasks` (puro) e `syncAutoTasks` (cria o que falta, cancela R1/R4 obsoletos, audita).
+- `lib/rules/today.ts`: `assembleToday` (puro) e `loadTodayPanel`.
+- `db/reset.ts` passou a usar transação e a gerar as tarefas automáticas depois do seed.
+Commit `9c8480f`.
+
+### 4.4 Endpoint dos agentes
+- `lib/agent/schema.ts` (contrato zod), `apply.ts` (aplicação por tipo, reutilizável na aprovação), `process.ts` (pipeline em transação), `handler.ts` (camada HTTP testável sem o Next).
+- `app/api/agent-events/route.ts` e `app/api/agenda/hoje/route.ts`.
+Commits `eed844b` e `9582b38` (registro dos campos ignorados).
+
+### 4.5 Edição pelo gestor
+`lib/customers/update.ts`: trava otimista, `human_edited_fields`, confirmação do provisório, telefone único, "perdido" exige motivo, auditoria. Commit `5439242`.
+
+### 4.6 Testes
+```bash
+npm test        # 121 testes em 9 arquivos
+```
+- Unidade: contrato zod (8 tipos válidos e casos inválidos), regras puras (R1 usa o dia da loja; R3 em 180 dias; R4 na véspera), `assembleToday`, autenticação.
+- Integração com PGlite (Postgres em memória, mesmas migrations): 401/415/413/422, idempotência, matching em outro formato de telefone, cliente provisório, cliente não encontrado, baixa confiança, alto impacto (orçamento não muda sem o gestor), conflito com edição humana, auditoria, tarefa R1 gerada, painel Hoje sobre o seed, idempotência das regras, cancelamento de R1/R4, trava otimista (409).
+
+Três falhas durante a escrita, todas dos próprios testes: orçamento "mais recente" mudou com um teste anterior; espaço não separável na formatação de moeda; regex corrompida por `sed`. Corrigidas.
+
+### 4.7 Verificação contra o Neon real
+```bash
+npm run db:seed                 # via WebSocket: 15 clientes, 12 tarefas automáticas criadas
+npx next start -p 3000
+curl -X POST .../api/agent-events                         # sem token → 401
+curl -X POST -H "Authorization: Bearer $TOKEN" ...        # → 201 applied (orçamento)
+# mesmo corpo de novo                                     # → 200 duplicate
+curl -H "Authorization: Bearer $TOKEN" .../api/agenda/hoje  # 3 revisões, 4 atrasados, 6 hoje, 5 próximos
+```
+Login simulado como formulário sem JavaScript: senha errada → sem cookie; senha certa → 303 + cookie; `/saude` e `/api/crm` com a sessão → 200. Seed refeito depois dos testes para limpar os dados.
+
+### 4.8 Variáveis na Vercel (antes do push, para o site não ficar trancado)
+```bash
+for k in GESTOR_PASSWORD SESSION_SECRET AGENT_API_TOKEN APP_TIMEZONE AGENT_AUTO_APPLY_THRESHOLD; do
+  V=$(grep "^$k=" .env.local | cut -d= -f2-)
+  printf "%s" "$V" | vercel env add $k production
+  printf "%s" "$V" | vercel env add $k preview
+done
+```

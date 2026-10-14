@@ -115,3 +115,36 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
 **D26 — zod continua na versão 3 por enquanto** (14/10)
 - Contexto: a D15 previa avaliar o zod 4 na Fase 1, mas os schemas zod são escritos na Fase 2 (contrato dos eventos).
 - Escolha: decidir no início da Fase 2.
+
+## Decisões da Fase 2
+
+**D27 — Driver WebSocket para transações (resolve a D16)** (14/10)
+- Contexto: o pipeline do §8.3 lê, decide e grava em várias tabelas; sem transação, um erro no meio deixaria um evento aplicado pela metade.
+- Opções: só o driver HTTP com `batch` (não permite "ler e decidir" no meio); driver WebSocket.
+- Escolha: `withTransactionalDb` abre um Pool WebSocket do Neon por requisição, roda tudo em `db.transaction` e fecha a conexão no fim. Leituras simples continuam no driver HTTP.
+- Motivo: atomicidade real (rollback em erro). Custo: uma conexão a mais por requisição dos agentes. Verificado contra o Neon real (seed e endpoint).
+
+**D28 — zod 4 (resolve a D26)** (14/10)
+- Escolha: zod 4.6, já que os schemas dos eventos foram escritos do zero. Tipos derivados com `z.infer` (sem duplicar tipos, §5).
+
+**D29 — Sessão sem tabela: cookie assinado** (14/10)
+- Opções: tabela de sessões; biblioteca de autenticação; cookie assinado com HMAC.
+- Escolha: cookie `httpOnly` com `v1.<expira>.<HMAC-SHA256>`; senha única do gestor (D4) comparada em tempo constante; atraso fixo de 600 ms em senha errada; logout por POST.
+- Motivo: simples, sem estado no servidor e suficiente para um único usuário. Limitação: não dá para "derrubar" uma sessão específica (só trocando o `SESSION_SECRET`, que derruba todas) e não há bloqueio após várias tentativas.
+
+**D30 — Proteção em duas camadas** (14/10)
+- O `proxy.ts` (nome do antigo middleware no Next 16) exige sessão em tudo, exceto `/login` e as APIs dos agentes (token próprio). Rotas e páginas conferem a sessão de novo (`hasSession`), como recomenda a documentação do Next: uma mudança no matcher não pode deixar algo aberto. A `/saude` também passou a exigir login.
+
+**D31 — Regras de aplicação do agente** (14/10)
+- `customer.upserted` só preenche campos vazios. Valor diferente em campo editado pelo gestor → revisão (`conflito_edicao_humana`); em campo não editado pelo gestor → não sobrescreve e registra em `result.ignored`.
+- Cliente novo do agente (baixo risco e confiança ≥ limiar) nasce provisório; sem nome informado, recebe "Contato (19) 9xxxx-xxxx", que pode ser substituído depois.
+- `varios_clientes` não acontece na prática (telefone é único); o caminho foi mantido por robustez.
+- Sem `quote_id`, a aprovação/recusa mira o orçamento "enviado" mais recente do cliente (§8.2).
+- Erro inesperado no processamento → 500 e nada fica gravado (rollback); o n8n pode reenviar o mesmo `event_id`.
+
+**D32 — Abrangência das regras R2 e R4** (14/10)
+- R2 vale para todo serviço; pós-vendas de serviços antigos entram no seed como concluídos.
+- R4 vale para todo agendamento futuro ainda "agendado" (não só o de amanhã), vencendo na véspera: aparece antes em "Próximos 7 dias". Agendamentos passados não geram R4.
+
+**D33 — CSP básica com `'unsafe-inline'`** (14/10)
+- O Next usa scripts inline; uma CSP sem `'unsafe-inline'` exigiria nonce em cada requisição. Para o prazo, CSP básica (§11); nonce fica como próximo passo.
