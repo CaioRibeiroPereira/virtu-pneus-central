@@ -405,3 +405,51 @@ for k in GESTOR_PASSWORD SESSION_SECRET AGENT_API_TOKEN APP_TIMEZONE AGENT_AUTO_
   printf "%s" "$V" | vercel env add $k preview
 done
 ```
+
+---
+
+## Etapa 5 — Fase 3: telas principais (14/10/2026)
+
+**Objetivo:** Login, Hoje, Clientes, Novo/editar e Ficha (§9) com as diretrizes visuais e de acessibilidade do §10. Decisões D34–D37.
+
+### 5.1 Remoção do legado
+```bash
+git rm -r app/api/crm lib/crm.ts lib/validation.ts components hooks vendor components.json lib/utils.ts app/page.tsx
+npx drizzle-kit generate --name remove_tabela_legado   # 0003: DROP TABLE "legacy_customers"
+npm uninstall radix-ui class-variance-authority clsx tailwind-merge tw-animate-css
+npm run db:migrate
+```
+Commit `1f6b7eb`.
+
+### 5.2 Telas
+- `app/globals.css`: tokens do §10, base 16 px, alvos de 44 px, foco visível, layout mobile-first (barra inferior < 900 px; lateral ≥ 900 px).
+- `app/(app)/layout.tsx`: exige sessão, contador de revisões pendentes, link "pular para o conteúdo", toasts.
+- `app/(app)/hoje`, `clientes`, `clientes/novo`, `clientes/[id]`, `clientes/[id]/editar`, `mais`; `revisao` e `simulador` provisórias (Fase 4).
+- `lib/customers/`: `input.ts` (zod dos formulários), `commands.ts` (ações em transação com auditoria e regras), `queries.ts`, `timeline.ts` (linha do tempo unificada, função pura); `lib/messages.ts` (mensagens de WhatsApp por tipo).
+- `app/(app)/actions.ts`: Server Actions (conferem a sessão de novo).
+Commit `b6d8501`.
+
+### 5.3 Acessibilidade e screenshots
+```bash
+npm install -D @playwright/test @axe-core/playwright   # sem baixar navegadores: usa o Chrome instalado
+npm run build && npx playwright test
+```
+Resultado: **0 violações** do axe (WCAG 2.0/2.1/2.2 A e AA) em login, Hoje, Clientes, ficha, novo e editar, em 375 e 1280 px; sem rolagem horizontal em 320 px. Screenshots em `docs/screenshots/depois/`.
+
+Revisão visual dos screenshots encontrou 5 problemas que o axe não pega, todos corrigidos:
+1. data "Quarta-Feira, 14 De Outubro" (CSS capitalizava todas as palavras);
+2. concordância no texto da R4 ("Troca de pneus marcado");
+3. filtro ativo do histórico sem destaque visual;
+4. seções "Registrar" sem indicação de que abrem;
+5. ação que vence hoje em vermelho (vermelho fica só para atraso).
+
+Incidente: duas cópias do `playwright-core` (1.64.0 e 1.64.1) quebravam os tipos; resolvido com `@playwright/test@1.64.1`, `overrides` no `package.json` e limpeza do cache incremental do TypeScript (`tsconfig.tsbuildinfo`). Commit `bd37400`.
+
+### 5.4 Verificações ao fim da etapa
+
+| Verificação | Comando | Resultado |
+|---|---|---|
+| Tipos | `npm run typecheck` | 0 erros |
+| Lint | `npm run lint` | 0 problemas |
+| Unidade + integração | `npm test` | 121 passando |
+| Acessibilidade (E2E) | `npm run test:e2e` | 5 passando, 0 violações |

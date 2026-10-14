@@ -148,3 +148,20 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
 
 **D33 — CSP básica com `'unsafe-inline'`** (14/10)
 - O Next usa scripts inline; uma CSP sem `'unsafe-inline'` exigiria nonce em cada requisição. Para o prazo, CSP básica (§11); nonce fica como próximo passo.
+
+## Decisões da Fase 3
+
+**D34 — Componentes nativos em vez de shadcn/Radix** (14/10)
+- Contexto: o protótipo trazia shadcn/Radix (dialog, select, sidebar, tabs), fonte de vários problemas de acessibilidade do diagnóstico (selects sem nome, rótulos em inglês).
+- Opções: corrigir os componentes vendorizados; usar elementos nativos do HTML.
+- Escolha: `<select>`, `<input type="date">`, `<details>` e formulários nativos, com um componente `Field` próprio (rótulo visível, dica e erro via `aria-describedby`).
+- Motivo: acessíveis e familiares no celular por padrão, sem JavaScript extra; saem 5 dependências (radix-ui, class-variance-authority, clsx, tailwind-merge, tw-animate-css).
+
+**D35 — Tela herdada removida (conclui a D21)** (14/10)
+- A tela antiga, a `/api/crm` e a tabela `legacy_customers` (migração 0003) saem junto com a chegada das telas novas. `/` redireciona para `/hoje`.
+
+**D36 — Ações do gestor sem fila de revisão** (14/10)
+- Orçamento criado pelo gestor nasce "enviado" (é registrado quando já foi mandado ao cliente); serviço registrado pelo gestor entra direto (a revisão é só para o que vem do agente, D6). Toda ação grava auditoria (`actor = gestor`) e ressincroniza as regras do cliente na mesma transação.
+
+**D37 — Testes E2E com o Chrome instalado e o banco do Neon** (14/10)
+- `channel: "chrome"` evita baixar navegadores (o disco C: estava cheio). Os testes de acessibilidade só leem dados; o banco de desenvolvimento é o mesmo da demo (um projeto Neon). Para testes que gravam (Fase 4), usar o seed ("Reiniciar demonstração") antes e depois. Próximo passo fora do prazo: um branch do Neon só para testes.
