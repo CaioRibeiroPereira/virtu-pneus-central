@@ -201,9 +201,34 @@ git mv PLANO_DESENVOLVIMENTO.md docs/PLANO_DESENVOLVIMENTO.md
 
 ---
 
+### 2.14 Banco no Neon e teste local
+**Foi feito assim:**
+1. `.env.local` criado a partir do `.env.example` com a `DATABASE_URL` do Neon. Confirmado que o git ignora o arquivo:
+   ```bash
+   cp .env.example .env.local        # e preenchida a DATABASE_URL
+   git check-ignore -v .env.local    # .gitignore:16:.env*
+   ```
+2. Migration aplicada no Neon:
+   ```bash
+   npm run db:migrate                # migrations applied successfully
+   ```
+3. Teste com o build de produção local:
+   ```bash
+   npm run build && npx next start -p 3000
+   curl http://localhost:3000/saude          # conectado, consulta em ~50 ms, 0 registros
+   curl http://localhost:3000/api/crm        # 200, 16 clientes criados no Neon
+   curl http://localhost:3000/               # 200
+   ```
+4. Gravação pela API (`POST /api/crm`): atualização válida → 200 (revisão 1 → 2); versão antiga → 409 (trava otimista); cliente novo → 200.
+5. Limpeza dos dados de teste (`truncate table customers`) para o deploy começar só com os clientes de exemplo.
+
+**Resultado:** a aplicação funciona de ponta a ponta com o Postgres do Neon.
+
+---
+
 ## Pendências da Fase 0 (item 4)
 
-- [ ] Caio: criar `.env.local` a partir do `.env.example` com a `DATABASE_URL` do Neon.
-- [ ] `npm run db:migrate` (cria a tabela no Neon) e teste local de `/saude` e da tela.
-- [ ] `git push` dos commits da Etapa 2.
+- [x] `.env.local` com a `DATABASE_URL` do Neon.
+- [x] `npm run db:migrate` e teste local de `/saude`, da API e da tela.
+- [x] `git push` dos commits da Etapa 2.
 - [ ] Deploy: `vercel link` → `vercel env add DATABASE_URL` → `vercel deploy --prod`; validar `/saude` na URL pública.
