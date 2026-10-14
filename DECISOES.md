@@ -75,5 +75,11 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
 **D18 — `test:e2e` fica para a Fase 4** (14/10)
 - Motivo: o Playwright entra junto com os testes E2E; um script apontando para testes inexistentes falharia.
 
+**D20 — Deploy automático pelo GitHub ativado (ajusta a D12)** (14/10)
+- Contexto: o `vercel link --yes` conectou o repositório do GitHub ao projeto da Vercel sem perguntar.
+- Opções: desconectar e manter só a CLI (D12 original); manter a conexão.
+- Escolha: manter, por enquanto — cada push na `main` gera deploy de produção e cada branch ganha uma URL de preview.
+- Motivo: menos passos manuais e prévia por branch. Cuidado: só fazer push na `main` com lint, tipos e build passando. Para desconectar: painel da Vercel → Settings → Git → Disconnect.
+
 **D19 — Fim de linha LF** (14/10)
 - Motivo: `.gitattributes` e Prettier com LF evitam diferenças CRLF/LF entre Windows e o build Linux da Vercel.

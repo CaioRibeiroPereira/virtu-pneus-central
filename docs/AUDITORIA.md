@@ -224,6 +224,35 @@ git mv PLANO_DESENVOLVIMENTO.md docs/PLANO_DESENVOLVIMENTO.md
 
 **Resultado:** a aplicação funciona de ponta a ponta com o Postgres do Neon.
 
+### 2.15 Deploy na Vercel
+**Foi feito assim:**
+1. O `vercel link` interativo travou no Git Bash (menus com setas); usado o modo sem perguntas:
+   ```bash
+   vercel project ls                                   # nenhum projeto na conta
+   vercel link --yes --project virtu-pneus-central     # cria e vincula o projeto
+   ```
+   Efeitos colaterais do comando, conferidos e tratados:
+   - conectou o repositório do GitHub ao projeto (deploy automático a cada push — ver D20);
+   - acrescentou `VERCEL_OIDC_TOKEN` ao `.env.local` (a `DATABASE_URL` continuou intacta);
+   - acrescentou linhas repetidas ao `.gitignore`, que anulavam a exceção do `.env.example` — revertido com `git checkout -- .gitignore`.
+2. Variável de ambiente cadastrada como segredo, lida do `.env.local` sem aparecer na tela:
+   ```bash
+   V=$(grep "^DATABASE_URL=" .env.local | cut -d= -f2-)
+   printf "%s" "$V" | vercel env add DATABASE_URL production
+   printf "%s" "$V" | vercel env add DATABASE_URL preview
+   vercel env ls                                       # DATABASE_URL: Secret, Production e Preview
+   ```
+3. Deploy e validação:
+   ```bash
+   vercel ls                                           # nenhum deploy anterior
+   vercel deploy --prod --yes
+   curl https://virtu-pneus-central.vercel.app/        # 200
+   curl https://virtu-pneus-central.vercel.app/saude   # 200, conectado, ~250 ms
+   curl https://virtu-pneus-central.vercel.app/api/crm # 200, 16 clientes
+   ```
+
+**Resultado:** sistema no ar em **https://virtu-pneus-central.vercel.app**, conectado ao Neon.
+
 ---
 
 ## Pendências da Fase 0 (item 4)
@@ -231,4 +260,8 @@ git mv PLANO_DESENVOLVIMENTO.md docs/PLANO_DESENVOLVIMENTO.md
 - [x] `.env.local` com a `DATABASE_URL` do Neon.
 - [x] `npm run db:migrate` e teste local de `/saude`, da API e da tela.
 - [x] `git push` dos commits da Etapa 2.
-- [ ] Deploy: `vercel link` → `vercel env add DATABASE_URL` → `vercel deploy --prod`; validar `/saude` na URL pública.
+- [x] Deploy na Vercel e validação de `/saude` na URL pública.
+
+**Fase 0 concluída.**
+
+Observação: a `/api/crm` herdada continua pública e sem autenticação na URL publicada, com dados fictícios. A proteção chega na Fase 2 (§3, item 1 do plano).
