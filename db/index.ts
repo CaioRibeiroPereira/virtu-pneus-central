@@ -1,13 +1,21 @@
-import { env } from "cloudflare:workers";
-import { drizzle } from "drizzle-orm/d1";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 
-export function getDb() {
-  if (!env.DB) {
-    throw new Error(
-      "Cloudflare D1 binding `DB` is unavailable. Set the `d1` field in .openai/hosting.json to `DB` or let your control plane inject the real binding values before using the database."
-    );
+function createDb() {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error("DATABASE_URL não configurada. Copie .env.example para .env.local e preencha.");
   }
+  // Driver HTTP do Neon: cada consulta é uma requisição HTTPS, sem conexão persistente,
+  // o que combina com funções serverless da Vercel.
+  return drizzle(neon(url), { schema });
+}
 
-  return drizzle(env.DB, { schema });
+let db: ReturnType<typeof createDb> | undefined;
+
+// Criação preguiçosa: o build não precisa da variável de ambiente, só quem consulta o banco.
+export function getDb() {
+  db ??= createDb();
+  return db;
 }
