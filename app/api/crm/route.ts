@@ -3,13 +3,17 @@ import { getDb } from "@/db";
 import { legacyCustomers as customers } from "@/db/schema";
 import { seed } from "@/lib/crm";
 import { customerInput } from "@/lib/validation";
+import { hasSession } from "@/lib/auth/session";
 
-// API herdada do protótipo, portada de D1 para Postgres sem mudar o comportamento.
-// Ainda sem autenticação: a Fase 2 protege tudo (docs/PLANO_DESENVOLVIMENTO.md §3, item 1).
+// API herdada do protótipo (tela antiga), portada de D1 para Postgres.
+// Exige a sessão do gestor (proxy + verificação aqui). Removida na Fase 3 (D21).
 
 export const dynamic = "force-dynamic";
 
+const unauthorized = () => Response.json({ error: "unauthorized" }, { status: 401 });
+
 export async function GET() {
+  if (!(await hasSession())) return unauthorized();
   try {
     const db = getDb();
     await db
@@ -28,6 +32,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  if (!(await hasSession())) return unauthorized();
   try {
     const url = new URL(req.url);
     const origin = req.headers.get("origin");

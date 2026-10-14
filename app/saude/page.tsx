@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { sql } from "drizzle-orm";
+import { redirect } from "next/navigation";
 import { getDb } from "@/db";
+import { hasSession } from "@/lib/auth/session";
 
 export const metadata: Metadata = { title: "Saúde do sistema | Grupo Virtù Pneus" };
 
@@ -55,6 +57,7 @@ async function checkDatabase(): Promise<Check> {
 }
 
 export default async function SaudePage() {
+  if (!(await hasSession())) redirect("/login?next=/saude");
   const check = await checkDatabase();
   return (
     <main className="content">
