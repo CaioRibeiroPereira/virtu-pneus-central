@@ -18,7 +18,6 @@ import {
   uuid,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
-import type { Client } from "@/lib/crm";
 
 // ---------- Enums ----------
 
@@ -362,15 +361,3 @@ export const auditLog = pgTable(
   },
   (t) => [index("audit_log_entity_idx").on(t.entityType, t.entityId, t.at)],
 );
-
-// ---------- Tabela herdada (temporária) ----------
-
-/**
- * Tabela do protótipo: o cliente inteiro num JSON. Mantida só para a tela antiga continuar
- * funcionando até as telas novas (Fase 3), quando será removida (D21).
- */
-export const legacyCustomers = pgTable("legacy_customers", {
-  id: text("id").primaryKey(),
-  data: jsonb("data").$type<Client>().notNull(),
-  revision: integer("revision").notNull().default(1),
-});

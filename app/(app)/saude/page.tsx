@@ -19,7 +19,6 @@ const TABLES = [
   ["tasks", "Próximas ações"],
   ["agent_events", "Eventos de agentes"],
   ["review_items", "Fila de revisão"],
-  ["legacy_customers", "Tabela antiga do protótipo"],
 ] as const;
 
 type Check =
@@ -60,9 +59,11 @@ export default async function SaudePage() {
   if (!(await hasSession())) redirect("/login?next=/saude");
   const check = await checkDatabase();
   return (
-    <main className="content">
-      <h1>Saúde do sistema</h1>
-      <section className="panel" style={{ padding: 24, marginTop: 24 }}>
+    <>
+      <div className="page-header">
+        <h1>Saúde do sistema</h1>
+      </div>
+      <section className="card" style={{ marginTop: 16 }}>
         <h2>Banco de dados (Neon Postgres)</h2>
         {check.ok ? (
           <>
@@ -93,6 +94,6 @@ export default async function SaudePage() {
           </p>
         )}
       </section>
-    </main>
+    </>
   );
 }

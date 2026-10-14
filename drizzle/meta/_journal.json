@@ -22,6 +22,13 @@
       "when": 1792003254669,
       "tag": "0002_modelo_normalizado",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792006055957,
+      "tag": "0003_remove_tabela_legado",
+      "breakpoints": true
     }
   ]
 }
