@@ -265,3 +265,76 @@ git mv PLANO_DESENVOLVIMENTO.md docs/PLANO_DESENVOLVIMENTO.md
 **Fase 0 concluída.**
 
 Observação: a `/api/crm` herdada continua pública e sem autenticação na URL publicada, com dados fictícios. A proteção chega na Fase 2 (§3, item 1 do plano).
+
+---
+
+## Etapa 3 — Fase 1: dados (14/10/2026)
+
+**Objetivo:** modelo normalizado, migrations, seed relativo a hoje e as bibliotecas `lib/dates`, `lib/phone`, `lib/search` com testes (§6, §7.3 e §13 do plano). Decisões D21–D26.
+
+### 3.1 Bibliotecas de apoio
+**Foi feito assim:**
+```bash
+npm install libphonenumber-js@^1          # 1.13.15
+# teste rápido: a versão padrão ("min") aceitou "(19) 00000-1000" e "3232-1000" (sem DDD);
+# a versão "/max" recusou os dois → adotada (D24)
+```
+- `lib/dates.ts`: `todayInStore` (dia da loja em America/Sao_Paulo), `addDays`/`diffInDays` (aritmética de calendário imune a fuso), `storeTimeToUtc` (hora da loja → UTC), formatação e `describeDue` ("atrasado há 3 dias").
+- `lib/phone.ts`: `normalizePhone` (qualquer formato → E.164 + exibição) e `whatsappLink`.
+- `lib/search.ts`: `matchesSearch` (sem acento, por dígitos do telefone, por placa sem traço).
+- Testes em `tests/unit/` (dates, phone, search).
+```bash
+npm test        # 44 testes passando
+npx tsc --noEmit && npx eslint .
+git commit -m "feat(lib): datas no fuso da loja, telefone E.164 e busca normalizada"
+```
+Commit `994dc0b`.
+
+### 3.2 Modelo de dados e migrations
+`db/schema.ts` reescrito com 11 tabelas e 13 enums do §6, mais `legacy_customers` (D21). A `/api/crm` herdada passou a usar `legacy_customers`; a `/saude` passou a contar registros por tabela.
+
+Migração em duas etapas (D23):
+```bash
+# etapa 1: schema vazio temporário → só remove a tabela antiga
+printf 'export {};\n' > db/_vazio.ts
+npx drizzle-kit generate --dialect postgresql --schema ./db/_vazio.ts --out ./drizzle --name remove_tabela_prototipo
+rm db/_vazio.ts                 # drizzle/0001_remove_tabela_prototipo.sql: DROP TABLE "customers"
+# etapa 2: schema completo → só cria
+npx drizzle-kit generate --name modelo_normalizado   # 0002: 11 tabelas, 13 enums, CHECK, índice único parcial
+git commit -m "feat(db): modelo normalizado do §6 e tabela herdada renomeada"
+```
+Commit `6861fc5`.
+
+### 3.3 Seed relativo a hoje
+- `db/seed-data.ts`: `buildSeed(hoje)`, função pura que monta 15 clientes cobrindo R1–R4, tarefas atrasadas/hoje/próximas, um cliente provisório criado pelo agente e 3 itens na fila de revisão (alto impacto, baixa confiança, conflito com edição humana).
+- `db/reset.ts`: `resetDemoData` apaga e recria tudo num único `batch` (transação); será reaproveitado pelo botão "Reiniciar demonstração".
+- `db/seed.ts`: script do `npm run db:seed`.
+- `tests/unit/seed-data.test.ts`: 11 testes (referências entre tabelas, telefones válidos e únicos, cobertura de cada regra).
+
+Um teste falhou na primeira execução por erro do próprio teste (`.sort()` ordena números como texto); corrigido para `.sort((a, b) => a - b)`.
+```bash
+npm test        # 55 testes passando
+git commit -m "feat(db): seed fictício relativo a hoje e script db:seed"
+```
+Commit `fd03107`.
+
+### 3.4 Aplicação no Neon e verificação
+```bash
+npm run db:migrate      # migrations applied successfully
+npm run db:seed         # dia 2026-10-14: 15 clientes, 13 veículos, 4 orçamentos, 5 serviços,
+                        # 3 agendamentos, 7 atendimentos, 5 tarefas, 6 eventos, 3 itens de revisão
+```
+Verificação direta no banco:
+- inserir cliente "perdido" sem motivo → recusado (`customers_loss_reason_when_lost`);
+- inserir tarefa automática R2 duplicada → recusada (`tasks_auto_rule_unique`).
+
+Efeito colateral conhecido: entre a migração e o deploy seguinte, a versão publicada (que ainda usava o nome antigo da tabela) ficou fora do ar por alguns minutos.
+
+### 3.5 Verificações ao fim da etapa
+
+| Verificação | Comando | Resultado |
+|---|---|---|
+| Tipos | `npm run typecheck` | 0 erros |
+| Lint | `npm run lint` | 0 problemas |
+| Testes | `npm test` | 55 passando (4 arquivos) |
+| Restrições no banco | inserções inválidas no Neon | recusadas |
