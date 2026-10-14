@@ -20,9 +20,7 @@ import {
   Headphones,
   Send,
   CircleDollarSign,
-  TrendingUp,
   Target,
-  Menu,
   Loader2,
 } from "lucide-react";
 import {
@@ -55,6 +53,8 @@ import {
 } from "@/components/ui/table";
 import { Toaster, toast } from "sonner";
 import { Client, blank, stages, money, day, uid } from "@/lib/crm";
+type ApiResult = { clients?: Client[]; client?: Client; error?: string };
+const errorMessage = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const nav = [
   ["Visão geral", LayoutDashboard],
   ["Clientes", Users],
@@ -126,24 +126,32 @@ export default function App() {
     [message, setMessage] = useState(""),
     [date, setDate] = useState(day()),
     [taskFilter, setTaskFilter] = useState("Pendentes"),
-    [form, setForm] = useState<{ kind: string; client: string } | null>(null),
+    [form, setForm] = useState<{ kind: string; client: string; id?: string } | null>(null),
     [drag, setDrag] = useState("");
+  // A busca não mexe em estado; quem aplica o resultado é applyClients,
+  // chamado num callback (.then) — padrão aceito dentro de useEffect.
+  async function requestClients(): Promise<ApiResult> {
+    try {
+      const r = await fetch("/api/crm");
+      const d: ApiResult = await r.json();
+      if (!r.ok) throw Error(d.error);
+      return { clients: d.clients ?? [] };
+    } catch (e) {
+      return { error: errorMessage(e) };
+    }
+  }
+  function applyClients(result: ApiResult) {
+    if (result.error) setError(result.error);
+    else setClients(result.clients ?? []);
+    setLoading(false);
+  }
   async function load() {
     setLoading(true);
     setError("");
-    try {
-      const r = await fetch("/api/crm");
-      const d: any = await r.json();
-      if (!r.ok) throw Error(d.error);
-      setClients(d.clients);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
+    applyClients(await requestClients());
   }
   useEffect(() => {
-    load();
+    requestClients().then(applyClients);
   }, []);
   async function save(c: Client, notice = "Alteração salva") {
     if (busy) return false;
@@ -154,17 +162,18 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(c),
       });
-      const d: any = await r.json();
-      if (!r.ok) throw Error(d.error);
+      const d: ApiResult = await r.json();
+      if (!r.ok || !d.client) throw Error(d.error);
+      const saved = d.client;
       setClients((cs) =>
-        cs.some((x) => x.id === d.client.id)
-          ? cs.map((x) => (x.id === d.client.id ? d.client : x))
-          : [d.client, ...cs],
+        cs.some((x) => x.id === saved.id)
+          ? cs.map((x) => (x.id === saved.id ? saved : x))
+          : [saved, ...cs],
       );
       toast.success(notice);
       return true;
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e) {
+      toast.error(errorMessage(e));
       return false;
     } finally {
       setBusy(false);
@@ -957,9 +966,7 @@ export default function App() {
                             }
                           />
                           <button
-                            onClick={() =>
-                              setForm({ kind: "Remarcar", client: a.c.id, id: a.id } as any)
-                            }
+                            onClick={() => setForm({ kind: "Remarcar", client: a.c.id, id: a.id })}
                           >
                             Remarcar
                           </button>
@@ -1323,7 +1330,7 @@ export default function App() {
                 const at = String(fd.get("at")),
                   text = String(fd.get("text") || ""),
                   id = uid();
-                let next = { ...c };
+                const next = { ...c };
                 if (form.kind === "Agenda") {
                   next.appointments = [
                     ...c.appointments,
@@ -1332,7 +1339,7 @@ export default function App() {
                   next.stage = "Agendado";
                 } else if (form.kind === "Remarcar") {
                   next.appointments = c.appointments.map((a) =>
-                    a.id === (form as any).id ? { ...a, at, status: "Agendado" } : a,
+                    a.id === form.id ? { ...a, at, status: "Agendado" } : a,
                   );
                 } else if (form.kind === "Serviços") {
                   next.services = [
@@ -1377,7 +1384,7 @@ export default function App() {
                     form.kind === "Remarcar"
                       ? clients
                           .find((c) => c.id === form.client)
-                          ?.appointments.find((a) => a.id === (form as any).id)?.at
+                          ?.appointments.find((a) => a.id === form.id)?.at
                       : day() + "T10:00"
                   }
                 />
@@ -1425,7 +1432,19 @@ export default function App() {
     </SidebarProvider>
   );
 }
-function Metric({ label, value, detail, icon, accent = false }: any) {
+function Metric({
+  label,
+  value,
+  detail,
+  icon,
+  accent = false,
+}: {
+  label: string;
+  value: React.ReactNode;
+  detail: string;
+  icon: React.ReactNode;
+  accent?: boolean;
+}) {
   return (
     <section className={"metric " + (accent ? "accent-metric" : "")}>
       <div>
