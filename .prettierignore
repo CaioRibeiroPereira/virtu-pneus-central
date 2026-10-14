@@ -1,0 +1,8 @@
+node_modules
+.next
+drizzle
+package-lock.json
+vendor
+docs/diagnostico-screenshots
+# Documentos escritos à mão: mantidos como estão
+*.md

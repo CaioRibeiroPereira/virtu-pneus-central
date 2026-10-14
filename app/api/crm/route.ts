@@ -20,7 +20,10 @@ export async function GET() {
     return Response.json({ clients: rows.map((r) => ({ ...r.data, revision: r.revision })) });
   } catch (e) {
     console.error(e);
-    return Response.json({ error: "Não foi possível carregar os clientes. Tente novamente." }, { status: 503 });
+    return Response.json(
+      { error: "Não foi possível carregar os clientes. Tente novamente." },
+      { status: 503 },
+    );
   }
 }
 
@@ -28,10 +31,12 @@ export async function POST(req: Request) {
   try {
     const url = new URL(req.url);
     const origin = req.headers.get("origin");
-    if (origin && origin !== url.origin) return Response.json({ error: "Origem inválida" }, { status: 403 });
+    if (origin && origin !== url.origin)
+      return Response.json({ error: "Origem inválida" }, { status: 403 });
 
     const raw = await req.text();
-    if (raw.length > 200_000) return Response.json({ error: "Cadastro muito grande." }, { status: 413 });
+    if (raw.length > 200_000)
+      return Response.json({ error: "Cadastro muito grande." }, { status: 413 });
 
     let input: unknown;
     try {
@@ -73,6 +78,9 @@ export async function POST(req: Request) {
     return Response.json({ client: next });
   } catch (e) {
     console.error(e);
-    return Response.json({ error: "Não foi possível salvar. Seus dados continuam no formulário." }, { status: 503 });
+    return Response.json(
+      { error: "Não foi possível salvar. Seus dados continuam no formulário." },
+      { status: 503 },
+    );
   }
 }
