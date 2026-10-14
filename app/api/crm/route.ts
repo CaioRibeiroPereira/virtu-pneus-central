@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { customers } from "@/db/schema";
+import { legacyCustomers as customers } from "@/db/schema";
 import { seed } from "@/lib/crm";
 import { customerInput } from "@/lib/validation";
 

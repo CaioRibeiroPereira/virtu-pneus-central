@@ -8,6 +8,20 @@
       "when": 1792000366973,
       "tag": "0000_secret_meteorite",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792003240058,
+      "tag": "0001_remove_tabela_prototipo",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792003254669,
+      "tag": "0002_modelo_normalizado",
+      "breakpoints": true
     }
   ]
 }
