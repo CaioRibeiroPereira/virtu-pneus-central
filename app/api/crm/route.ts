@@ -5,7 +5,7 @@ import { seed } from "@/lib/crm";
 import { customerInput } from "@/lib/validation";
 
 // API herdada do protótipo, portada de D1 para Postgres sem mudar o comportamento.
-// Ainda sem autenticação: a Fase 2 protege tudo (PLANO_DESENVOLVIMENTO.md §3, item 1).
+// Ainda sem autenticação: a Fase 2 protege tudo (docs/PLANO_DESENVOLVIMENTO.md §3, item 1).
 
 export const dynamic = "force-dynamic";
 

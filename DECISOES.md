@@ -1,6 +1,6 @@
 # Registro de decisões
 
-Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 vêm do `PLANO_DESENVOLVIMENTO.md` (§2); as seguintes surgiram durante o desenvolvimento.
+Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 vêm do `docs/PLANO_DESENVOLVIMENTO.md` (§2); as seguintes surgiram durante o desenvolvimento.
 
 ## Decisões do plano
 
