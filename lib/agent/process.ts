@@ -143,14 +143,18 @@ export async function processAgentEvent(
       return sendToReview("alto_impacto", customer.id, target);
     }
     if (!confident) return sendToReview("baixa_confianca", customer.id);
+    // Campos que o agente propôs mudar mas que já estavam preenchidos (não pelo gestor):
+    // não são sobrescritos (o agente só preenche vazios), mas ficam registrados no resultado.
+    let ignored: string[] = [];
     if (event.type === "customer.upserted") {
-      const { conflicts } = diffCustomerFields(customer, event.data);
-      if (conflicts.length) {
+      const diff = diffCustomerFields(customer, event.data);
+      if (diff.conflicts.length) {
         return sendToReview("conflito_edicao_humana", customer.id, {
-          conflicts,
-          current: Object.fromEntries(conflicts.map((f) => [f, customer[f]])),
+          conflicts: diff.conflicts,
+          current: Object.fromEntries(diff.conflicts.map((f) => [f, customer[f]])),
         });
       }
+      ignored = diff.ignored;
     }
 
     // 6. Aplicação, auditoria e regras automáticas — tudo nesta mesma transação.
@@ -161,7 +165,11 @@ export async function processAgentEvent(
     });
     await tx
       .update(agentEvents)
-      .set({ status: "aplicado", customerId: customer.id, result: { applied } })
+      .set({
+        status: "aplicado",
+        customerId: customer.id,
+        result: ignored.length ? { applied, ignored } : { applied },
+      })
       .where(eq(agentEvents.id, stored.id));
     await syncAutoTasks(tx, today, { customerId: customer.id, agentEventId: stored.id });
 
