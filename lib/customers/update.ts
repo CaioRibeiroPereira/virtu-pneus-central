@@ -67,7 +67,12 @@ export async function updateCustomerByGestor(
     const humanEdited = [...new Set([...current.humanEditedFields, ...changed.map(fieldName)])];
     const [updated] = await tx
       .update(customers)
-      .set({ ...changes, humanEditedFields: humanEdited, isProvisional: false, version: current.version + 1 })
+      .set({
+        ...changes,
+        humanEditedFields: humanEdited,
+        isProvisional: false,
+        version: current.version + 1,
+      })
       .where(and(eq(customers.id, customerId), eq(customers.version, expectedVersion)))
       .returning({ version: customers.version });
     // Outra gravação passou na frente entre a leitura e o UPDATE.

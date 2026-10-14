@@ -107,7 +107,7 @@ export function computeAutoTasks(
       autoRule: "R4",
       type: "confirmar_agendamento",
       title: "Confirmar agendamento",
-      reason: `${serviceTypeLabel[a.serviceType] ?? "Serviço"} marcado para ${formatDate(day)} às ${formatTime(a.scheduledAt)}`,
+      reason: `Agendamento de ${(serviceTypeLabel[a.serviceType] ?? "serviço").toLowerCase()} em ${formatDate(day)} às ${formatTime(a.scheduledAt)}`,
       dueDate: addDays(day, -1),
       appointmentId: a.id,
     });

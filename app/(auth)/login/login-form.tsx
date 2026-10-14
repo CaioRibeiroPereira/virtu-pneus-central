@@ -22,13 +22,13 @@ export function LoginForm({ next }: { next: string }) {
         />
       </label>
       {state.error && (
-        <p id="password-error" role="alert" style={{ color: "#B42318", marginBottom: 16 }}>
+        <p id="password-error" role="alert" className="field-error" style={{ marginBottom: 16 }}>
           {state.error}
         </p>
       )}
       <button
         type="submit"
-        className="primary"
+        className="btn btn-primary"
         disabled={pending}
         style={{ width: "100%", minHeight: 44 }}
       >

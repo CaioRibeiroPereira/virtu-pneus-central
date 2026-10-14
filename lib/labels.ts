@@ -38,3 +38,37 @@ export const reviewReasonLabel: Record<string, string> = {
 export function formatMoney(value: number): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
+
+export const originLabel: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  indicacao: "Indicação",
+  balcao: "Balcão",
+  instagram: "Instagram",
+  google: "Google",
+  outro: "Outro",
+};
+
+export const quoteStatusLabel: Record<string, string> = {
+  rascunho: "Rascunho",
+  enviado: "Enviado, aguardando resposta",
+  aprovado: "Aprovado",
+  recusado: "Recusado",
+  expirado: "Expirado",
+};
+
+export const appointmentStatusLabel: Record<string, string> = {
+  agendado: "Agendado (a confirmar)",
+  confirmado: "Confirmado",
+  concluido: "Concluído",
+  cancelado: "Cancelado",
+  nao_compareceu: "Não compareceu",
+};
+
+export const channelLabel: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  telefone: "Telefone",
+  balcao: "Balcão",
+};
+
+/** Lista [valor, rótulo] para montar <select>. */
+export const options = (labels: Record<string, string>) => Object.entries(labels);
