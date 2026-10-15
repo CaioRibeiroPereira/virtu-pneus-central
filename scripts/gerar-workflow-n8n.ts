@@ -1,6 +1,6 @@
-// Gera infra/n8n/workflows/vito-extracao.json a partir do código do repositório (D42).
-// O nó de código do n8n roda o MESMO buildPrompt / extractionJsonSchema / postProcess de
-// lib/agent/extraction.ts, empacotados com esbuild — o prompt e as checagens não são copiados à mão.
+// Gera os workflows do n8n (infra/n8n/workflows/) a partir do código do repositório (D42/D46).
+// Na extração, os nós de código rodam o MESMO buildPrompt e o núcleo do pós-processamento de
+// lib/agent/, empacotados com esbuild — o prompt e as checagens não são copiados à mão.
 //
 //   npx tsx scripts/gerar-workflow-n8n.ts
 //
@@ -132,6 +132,7 @@ const headerAuth = {
 const CREDENTIALS = {
   gemini: { id: "vitoGeminiKey001", name: "Gemini (x-goog-api-key)" },
   agent: { id: "vitoAgentToken01", name: "Sistema Virtù (Bearer)" },
+  telegram: { id: "vitoTelegramBot01", name: "Telegram (bot do resumo)" },
 };
 
 const workflow = {
@@ -302,3 +303,67 @@ console.log(
   `infra/n8n/workflows/vito-extracao.json gerado (pedido: ${Math.round((promptBundle.length + schemaJson.length) / 1024)} KB, ` +
     `pós-processamento: ${Math.round(postBundle.length / 1024)} KB)`,
 );
+
+// ---------- resumo diário (§12.2, extra T2) ----------
+// 7h45 → GET /api/agenda/hoje → Telegram. A mensagem vem pronta do sistema (lib/rules/digest.ts).
+const digestWorkflow = {
+  id: "vitoResumoDiario01",
+  name: "Vito — resumo diário no Telegram",
+  nodes: [
+    {
+      id: "b2e1d3f4-0001-4c1a-9b10-000000000001",
+      name: "Todo dia às 7h45",
+      type: "n8n-nodes-base.scheduleTrigger",
+      typeVersion: 1.2,
+      position: [0, 0],
+      parameters: { rule: { interval: [{ field: "cronExpression", expression: "45 7 * * *" }] } },
+    },
+    {
+      id: "b2e1d3f4-0002-4c1a-9b10-000000000002",
+      name: "Painel de hoje",
+      type: "n8n-nodes-base.httpRequest",
+      typeVersion: 4.2,
+      position: [240, 0],
+      credentials: { httpHeaderAuth: CREDENTIALS.agent },
+      retryOnFail: true, // o banco gratuito pode estar "acordando" às 7h45
+      maxTries: 3,
+      waitBetweenTries: 5000,
+      parameters: {
+        method: "GET",
+        url: "={{ ($env.VITO_APP_URL || 'http://host.docker.internal:3000') + '/api/agenda/hoje' }}",
+        ...headerAuth,
+        options: { timeout: 60000 },
+      },
+    },
+    {
+      id: "b2e1d3f4-0003-4c1a-9b10-000000000003",
+      name: "Enviar no Telegram",
+      type: "n8n-nodes-base.telegram",
+      typeVersion: 1.2,
+      position: [480, 0],
+      credentials: { telegramApi: CREDENTIALS.telegram },
+      retryOnFail: true,
+      maxTries: 3,
+      waitBetweenTries: 5000,
+      parameters: {
+        resource: "message",
+        operation: "sendMessage",
+        chatId: "={{ $env.VITO_TELEGRAM_CHAT_ID }}",
+        text: "={{ $json.mensagem }}",
+        additionalFields: { appendAttribution: false },
+      },
+    },
+  ],
+  connections: {
+    "Todo dia às 7h45": { main: [[{ node: "Painel de hoje", type: "main", index: 0 }]] },
+    "Painel de hoje": { main: [[{ node: "Enviar no Telegram", type: "main", index: 0 }]] },
+  },
+  settings: { executionOrder: "v1", timezone: "America/Sao_Paulo" },
+  pinData: {},
+};
+
+writeFileSync(
+  "infra/n8n/workflows/vito-resumo-diario.json",
+  JSON.stringify(digestWorkflow, null, 2) + "\n",
+);
+console.log("infra/n8n/workflows/vito-resumo-diario.json gerado");

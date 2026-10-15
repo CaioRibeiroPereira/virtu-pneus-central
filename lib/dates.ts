@@ -104,3 +104,15 @@ export function describeDue(due: DateOnly, today: DateOnly): string {
   if (days > 1) return `vence em ${days} dias`;
   return days === -1 ? "atrasado há 1 dia" : `atrasado há ${-days} dias`;
 }
+
+/** "Quinta-feira, 15 de outubro" (tela Hoje e resumo diário). */
+export function formatLongDate(date: DateOnly): string {
+  assertDateOnly(date);
+  const text = new Date(`${date}T12:00:00Z`).toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  });
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}

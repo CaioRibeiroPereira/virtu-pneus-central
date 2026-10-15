@@ -1,0 +1,111 @@
+{
+  "id": "vitoResumoDiario01",
+  "name": "Vito — resumo diário no Telegram",
+  "nodes": [
+    {
+      "id": "b2e1d3f4-0001-4c1a-9b10-000000000001",
+      "name": "Todo dia às 7h45",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "45 7 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b2e1d3f4-0002-4c1a-9b10-000000000002",
+      "name": "Painel de hoje",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "vitoAgentToken01",
+          "name": "Sistema Virtù (Bearer)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "method": "GET",
+        "url": "={{ ($env.VITO_APP_URL || 'http://host.docker.internal:3000') + '/api/agenda/hoje' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 60000
+        }
+      }
+    },
+    {
+      "id": "b2e1d3f4-0003-4c1a-9b10-000000000003",
+      "name": "Enviar no Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        0
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "vitoTelegramBot01",
+          "name": "Telegram (bot do resumo)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $env.VITO_TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.mensagem }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Todo dia às 7h45": {
+      "main": [
+        [
+          {
+            "node": "Painel de hoje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Painel de hoje": {
+      "main": [
+        [
+          {
+            "node": "Enviar no Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
+  "pinData": {}
+}

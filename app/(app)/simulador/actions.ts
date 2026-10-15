@@ -8,6 +8,7 @@ import { withTransactionalDb } from "@/db";
 import { resetDemoData } from "@/db/reset";
 import { requireSession } from "@/lib/auth/session";
 import { todayInStore } from "@/lib/dates";
+import { trustedAppUrl } from "@/lib/app-url";
 import { buildPresetEvents } from "@/lib/simulator/presets";
 
 export type SendResult = {
@@ -23,11 +24,8 @@ export type SendResult = {
  * Produção: domínio informado pela própria Vercel. Local: localhost. Preview: null (ver abaixo).
  */
 function trustedEndpoint(): string | null {
-  if (process.env.VERCEL_ENV === "production" && process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/api/agent-events`;
-  }
-  if (!process.env.VERCEL) return `http://localhost:${process.env.PORT ?? 3000}/api/agent-events`;
-  return null;
+  const base = trustedAppUrl();
+  return base ? `${base}/api/agent-events` : null;
 }
 
 async function post(

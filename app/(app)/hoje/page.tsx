@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CalendarClock, CircleCheck, Inbox, Sparkles } from "lucide-react";
 import { withTransactionalDb } from "@/db";
-import { describeDue, formatDate, todayInStore } from "@/lib/dates";
+import { describeDue, formatDate, formatLongDate, todayInStore } from "@/lib/dates";
 import { taskTypeLabel } from "@/lib/labels";
 import { whatsappMessage } from "@/lib/messages";
 import { whatsappLink } from "@/lib/phone";
@@ -11,17 +11,6 @@ import { TaskActions } from "@/components/task-actions";
 
 export const metadata: Metadata = { title: "Hoje | Central de clientes" };
 export const dynamic = "force-dynamic";
-
-function weekdayLabel(date: string) {
-  const d = new Date(`${date}T12:00:00Z`);
-  const text = d.toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-  });
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
 
 function TaskCard({ task, today }: { task: TodayTask & { daysOverdue: number }; today: string }) {
   const overdue = task.dueDate < today;
@@ -112,7 +101,7 @@ export default async function HojePage() {
         <div>
           <h1>Hoje</h1>
           <p className="muted" style={{ marginTop: 4 }}>
-            {weekdayLabel(today)}
+            {formatLongDate(today)}
           </p>
         </div>
         <p className="muted">
