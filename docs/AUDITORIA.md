@@ -537,7 +537,7 @@ curl -X POST localhost:5678/webhook/vito-conversa -H "content-type: application/
 Problemas encontrados, em ordem:
 1. `Extracao.buildPrompt is not a function` → o task runner do n8n troca `Object.defineProperty` por uma função vazia (encontrado no código do runner); o empacotamento passou a usar atribuição simples.
 2. `util_exports.derived is not a function` → o zod também depende de `defineProperty`; o n8n passou a usar o núcleo sem zod (D50). Nó de 450 KB → 5 KB.
-3. Dois eventos com 500: corrida ao criar o cliente provisório → `ON CONFLICT DO NOTHING` (D51). Verificado com 5 eventos simultâneos no Neon: todos 201, um único cliente.
+3. Dois eventos com 500: corrida ao criar o cliente provisório → `ON CONFLICT DO NOTHING` (D51). Verificado com 5 eventos simultâneos no Neon (todos 201, um único cliente) e com o teste `tests/integration/agent-race.test.ts`, que reproduz a corrida com um trigger: 500 no código antigo, 201 com a correção.
 4. Gemini 429 (cota diária) → nó "Gemini (modelo reserva)" na saída de erro.
 
 Resultado: Gemini (via reserva) com 4 eventos aplicados em 7,5 s; Ollama com 3 eventos em cerca de 13 s. Prints em `docs/screenshots/n8n/`.
@@ -551,7 +551,7 @@ Login feito com o Playwright; o cookie de sessão foi passado por `--extra-heade
 | O quê | Comando | Resultado |
 |---|---|---|
 | Formato / lint / tipos | `npm run format:check && npm run lint && npm run typecheck` | ok |
-| Unidade + integração | `npm test` | 151 passando |
+| Unidade + integração | `npm test` | 152 passando |
 | E2E na produção | `E2E_BASE_URL=https://virtu-pneus-central.vercel.app npx playwright test` | 7 passando |
 | Segredos | `git diff --cached` procurando a chave do Gemini, a senha do Neon e o token | nada encontrado (a senha da demo está no README de propósito, §17) |
 | Demo limpa | `npm run db:seed` | dados de teste removidos; seed relativo a hoje |

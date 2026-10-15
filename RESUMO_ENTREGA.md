@@ -22,7 +22,7 @@ servia para dados reais. O diagnóstico completo está em [`docs/DIAGNOSTICO.md`
 | Datas | histórico em UTC; demo "congelada" em 24/09 | fuso de São Paulo em todo lugar; seed relativo a hoje + "Reiniciar demonstração" |
 | Acessibilidade | Lighthouse 89–95; **597** falhas de contraste no axe | Lighthouse **100** em todas as telas; axe **sem violações** em 375 e 1280 px; reflow em 320 px |
 | Celular | tabela e kanban rolando de lado; menu que não fecha | barra inferior, cards, alvos de 44 px |
-| Testes | nenhum | 151 de unidade/integração, 7 E2E com axe, banco de testes da IA |
+| Testes | nenhum | 152 de unidade/integração, 7 E2E com axe, banco de testes da IA |
 
 Prints: antes em [`docs/diagnostico-screenshots/`](docs/diagnostico-screenshots/), depois em
 [`docs/screenshots/depois/`](docs/screenshots/depois/) (375 e 1280 px de cada tela).
@@ -31,7 +31,7 @@ Prints: antes em [`docs/diagnostico-screenshots/`](docs/diagnostico-screenshots/
 
 | Tipo | Ferramenta | Resultado |
 |---|---|---|
-| Unidade + integração | Vitest; Postgres em memória (PGlite) com as **migrações reais** | **151 passando**: datas/fuso, telefone, busca, auth, regras R1–R4, endpoint (401/413/415/422, idempotência, matching, decisão, conflito com edição humana), revisão, extração da IA |
+| Unidade + integração | Vitest; Postgres em memória (PGlite) com as **migrações reais** | **152 passando**: datas/fuso, telefone, busca, auth, regras R1–R4, endpoint (401/413/415/422, idempotência, matching, decisão, conflito com edição humana, eventos simultâneos), revisão, extração da IA |
 | E2E | Playwright (Chrome) | **7 passando** localmente e **contra a produção**: concluir ação → linha do tempo; simulador → aplica, reenvio ignorado, alto impacto → revisão → aprovar → ficha |
 | Acessibilidade automática | axe-core (WCAG 2.0/2.1/2.2 A e AA) | **0 violações** em login, Hoje, Clientes, Novo cliente, Mais, Revisão e Simulador, em 375 e 1280 px |
 | Lighthouse 13.5 (produção) | ver tabela abaixo | Acessibilidade 100 em todas |
