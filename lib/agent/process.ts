@@ -113,7 +113,7 @@ export async function processAgentEvent(
         event.customer.name ||
         (event.type === "customer.upserted" ? event.data.name : undefined) ||
         `Contato ${phone.display}`;
-      [customer] = await tx
+      const [created] = await tx
         .insert(customers)
         .values({
           name,
@@ -123,15 +123,24 @@ export async function processAgentEvent(
           source: "agente",
           agentEventId: stored.id,
         })
+        .onConflictDoNothing({ target: customers.phoneE164 })
         .returning();
-      await tx.insert(auditLog).values({
-        entityType: "customer",
-        entityId: customer.id,
-        action: "create",
-        actorType: "agente",
-        agentEventId: stored.id,
-        after: { name, provisional: true },
-      });
+      if (created) {
+        customer = created;
+        await tx.insert(auditLog).values({
+          entityType: "customer",
+          entityId: customer.id,
+          action: "create",
+          actorType: "agente",
+          agentEventId: stored.id,
+          after: { name, provisional: true },
+        });
+      } else {
+        // Corrida: eventos da mesma conversa chegam em paralelo (o n8n envia vários de uma vez) e
+        // outra transação criou este cliente depois do nosso SELECT. O índice único segurou a
+        // duplicata; seguimos com o cliente que ela criou (D51).
+        [customer] = await tx.select().from(customers).where(eq(customers.phoneE164, phone.e164));
+      }
     }
 
     // 5. Decisão.

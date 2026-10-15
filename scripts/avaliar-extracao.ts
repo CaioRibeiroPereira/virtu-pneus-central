@@ -30,7 +30,7 @@ const arg = (name: string, fallback: string) => {
 };
 const provider = arg("provedor", "ambos");
 const runs = Math.max(1, Number(arg("rodadas", "1")));
-const ollamaModels = arg("modelos-ollama", process.env.OLLAMA_MODEL ?? "qwen2.5:3b")
+const ollamaModels = arg("modelos-ollama", process.env.OLLAMA_MODEL ?? "llama3.2:3b")
   .split(",")
   .map((m) => m.trim())
   .filter(Boolean);
@@ -141,12 +141,21 @@ const summary = configs.map((config) => {
     campos: `${fields.filter((f) => f.ok).length}/${fields.length}`,
     rotas: `${routes.filter((r) => r.ok).length}/${routes.length}`,
     extras: ok.reduce((s, r) => s + r.score!.extra.length, 0),
+    indevidos: ok.reduce((s, r) => s + unsafe(r.score!), 0),
     rejeitados: mine.reduce((s, r) => s + r.rejected, 0),
     erros: mine.filter((r) => r.error && !r.score).length,
     mediana: times.length ? `${(times[Math.floor(times.length / 2)] / 1000).toFixed(1)} s` : "—",
     pior: times.length ? `${(times[times.length - 1] / 1000).toFixed(1)} s` : "—",
   };
 });
+
+/** Entraria no cadastro sem o gestor ver: evento a mais aplicado ou rota “aplica” onde devia revisar. */
+function unsafe(score: Score) {
+  return (
+    score.extraApplied.length +
+    score.routes.filter((x) => x.got === "aplica" && x.expected === "revisão").length
+  );
+}
 
 function expectedCount(presetId: string) {
   return presets.find((p) => p.id === presetId)!.events.length;
@@ -173,16 +182,16 @@ if (args.includes("--salvar")) {
     "**Como a nota é calculada (por conversa):** 1 ponto por tipo de evento esperado que apareceu, " +
       "1 por campo-chave certo (valor do orçamento, placa, medida, data do agendamento, status…) e " +
       "1 se a rota (aplica sozinho × fila de revisão) bate com o gabarito. Eventos a mais não tiram " +
-      "ponto, mas aparecem na coluna “extras”. Rejeitados = itens que a IA devolveu fora do contrato " +
+      "ponto, mas aparecem na coluna “extras”. **Indevidos** = eventos que entrariam no cadastro sem o gestor ver (evento a mais com confiança alta, ou rota “aplica” onde o gabarito pede revisão) — o erro que custa caro. Rejeitados = itens que a IA devolveu fora do contrato " +
       "e o pós-processamento descartou.",
     "",
     "## Resumo",
     "",
-    "| Configuração | Acerto | Tipos | Campos-chave | Rotas | Extras | Rejeitados | Falhas | Mediana | Pior |",
-    "|---|---|---|---|---|---|---|---|---|---|",
+    "| Configuração | Acerto | Indevidos | Tipos | Campos-chave | Rotas | Extras | Rejeitados | Falhas | Mediana | Pior |",
+    "|---|---|---|---|---|---|---|---|---|---|---|",
     ...summary.map(
       (s) =>
-        `| ${s.config} | ${s.acerto} | ${s.tipos} | ${s.campos} | ${s.rotas} | ${s.extras} | ${s.rejeitados} | ${s.erros} | ${s.mediana} | ${s.pior} |`,
+        `| ${s.config} | ${s.acerto} | ${s.indevidos} | ${s.tipos} | ${s.campos} | ${s.rotas} | ${s.extras} | ${s.rejeitados} | ${s.erros} | ${s.mediana} | ${s.pior} |`,
     ),
     "",
     "## Por conversa",
@@ -195,6 +204,7 @@ if (args.includes("--salvar")) {
         r.error && `erro: ${r.error.replace(/\|/g, "/")}`,
         s?.missing.length && `faltou ${s.missing.join(", ")}`,
         s?.extra.length && `extra ${s.extra.join(", ")}`,
+        s?.extraApplied.length && `entraria sem revisão: ${s.extraApplied.join(", ")}`,
         ...(s?.fields.filter((f) => !f.ok) ?? []).map(
           (f) =>
             `${f.field}: esperado ${JSON.stringify(f.expected)}, veio ${JSON.stringify(f.got)}`,
@@ -204,7 +214,7 @@ if (args.includes("--salvar")) {
         ),
         r.rejected &&
           `${r.rejected} rejeitado(s) (${r.rejectedIssues.join("; ").replace(/\|/g, "/")})`,
-        r.adjusted && `${r.adjusted} confiança(s) rebaixada(s)`,
+        r.adjusted && `${r.adjusted} ajuste(s) do pós-processamento`,
         r.model && !r.config.includes(r.model) && `respondeu o modelo reserva ${r.model}`,
       ].filter(Boolean);
       return `| ${r.config} | ${r.preset} | ${s ? `${s.points}/${s.maxPoints}` : "—"} | ${(r.ms / 1000).toFixed(1)} s | ${notes.join("; ") || "ok"} |`;

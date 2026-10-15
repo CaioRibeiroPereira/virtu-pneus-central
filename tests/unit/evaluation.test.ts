@@ -62,6 +62,7 @@ describe("scoreExtraction", () => {
     const score = scoreExtraction(expected, got, 0.85);
     expect(score.missing).toEqual(["customer.upserted"]);
     expect(score.extra).toEqual(["interaction.logged"]);
+    expect(score.extraApplied).toEqual(["interaction.logged"]); // 0,9 e baixo risco: entraria direto
     expect(score.fields.find((f) => f.field === "total")?.ok).toBe(false);
     expect(score.routes[0]).toMatchObject({ expected: "aplica", got: "revisão", ok: false });
   });

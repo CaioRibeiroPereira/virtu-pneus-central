@@ -89,15 +89,29 @@ tipos TypeScript e o JSON Schema pedido à IA saem do mesmo zod).
 
 ## Dois provedores, um seletor (D42)
 
-| | Gemini (`gemini-3.5-flash`) | Ollama (`qwen2.5:7b`, local) |
+| | Gemini (`gemini-3.5-flash`) | Ollama (`llama3.2:3b`, local) |
 |---|---|---|
-| Qualidade nas conversas de teste | ver `docs/AVALIACAO_IA.md` | ver `docs/AVALIACAO_IA.md` |
+| Acerto no banco de testes | **97%** | **62%** |
+| Entraria no cadastro sem o gestor ver | 2 (1 contato provisório indevido) | **0** |
+| Tempo por conversa (mediana) | ~3 s | ~9 s (até 45 s na conversa mais longa) |
 | Dados | saem para o Google — **só fictícios** | ficam no computador da loja (LGPD) |
-| Custo | plano gratuito, com limite e instabilidade | grátis; exige um PC com ~8 GB de RAM livres |
-| Falhas | 429/503 → novas tentativas e modelos reserva (D43) | sem limite de uso; mais lento na CPU |
+| Custo | plano gratuito, com limite e instabilidade | grátis; ~2 GB de disco, roda na CPU |
+| Falhas | 429/503 → novas tentativas e modelos reserva (D43) | sem limite de uso |
 
 O provedor é escolhido no workflow do n8n (`provider` na conversa ou `VITO_PROVIDER`). Os dois usam
 **o mesmo prompt, o mesmo JSON Schema e o mesmo pós-processamento**, então a comparação é justa.
+
+**O que os números dizem** (notebook sem placa de vídeo, Intel Iris Xe, 16 GB; detalhes em
+[`AVALIACAO_IA.md`](AVALIACAO_IA.md)):
+
+- O **Gemini** acerta quase tudo e é rápido: é o provedor da demonstração.
+- Os modelos locais erram mais, mas **erram para o lado seguro**: faltam eventos ou a confiança cai,
+  e o item vai para a Revisão. O custo é mais trabalho para o gestor, não dado errado no cadastro.
+- **Maior não foi melhor:** o `qwen2.5:7b` (48%) inventou valores com confiança alta e levou de
+  9 a 75 s. Foi esse teste que mostrou a necessidade do **lastro** no pós-processamento (D48):
+  placa, medida, cidade, horário etc. só passam se estiverem na conversa.
+- Para usar o Ollama com dados reais, o próximo passo é um computador com placa de vídeo e um
+  modelo maior, medido com o mesmo banco de testes antes de trocar.
 
 ## Como testar
 

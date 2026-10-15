@@ -19,6 +19,7 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  agentRules: false, // não gerar AGENTS.md no repositório a cada `next dev`
   async headers() {
     return [
       {

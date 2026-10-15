@@ -220,3 +220,42 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
 
 **D47 — Ferramentas locais fora do disco C:** (15/10)
 - O C: estava com menos de 1 GB livre. O Ollama (programa e modelos, via `OLLAMA_MODELS`) e o n8n de teste ficaram no D:. O disco virtual do Docker fica no C:, então o n8n foi testado com `npx n8n`; o `docker-compose.yml` fica no repositório para quem for avaliar.
+
+**D48 — Pós-processamento exige lastro na conversa** (15/10)
+- Contexto: medindo o `qwen2.5:7b`, apareceram valores inventados com confiança 0,9. A cidade "Campinas" e a medida "205/55 R16" foram copiadas do próprio prompt, e "passo aí na segunda" virou um agendamento numa sexta à meia-noite. Pelas checagens anteriores, esse agendamento seria aplicado sozinho.
+- Opções: endurecer o prompt; trocar de modelo; checar no código.
+- Escolha: checar no código, para qualquer provedor.
+  - Placa, medida, e-mail e ano só ficam se aparecerem na conversa.
+  - Nome, cidade e modelo precisam de ao menos uma palavra presente na conversa.
+  - Campo sem lastro é descartado; evento que fica vazio é rejeitado.
+  - Agendamento cuja hora não foi citada, ou cujo dia da semana difere do citado, cai para confiança 0,5 e vai para a revisão.
+- Motivo: prompt é pedido, código é garantia. A checagem é barata, determinística e testada, e vale também para o Gemini.
+
+**D49 — Modelo local padrão: `llama3.2:3b`** (15/10)
+- Medido no mesmo banco de testes, neste notebook (CPU, Intel Iris Xe, 16 GB):
+
+  | Modelo | Acerto | Indevidos | Mediana por conversa |
+  |---|---|---|---|
+  | `llama3.2:3b` | 62% | 0 | 9 s |
+  | `qwen2.5:3b` | 59% | 0 | 8 s |
+  | `qwen2.5:7b` | 48% | 5 | 43 s |
+  | Gemini | 97% | 2 | 3 s |
+- Escolha: `llama3.2:3b`. Teve o melhor acerto entre os locais, acertou todas as rotas e não deixou nada passar sem revisão.
+- Ressalva: uma rodada por modelo e só 5 conversas. A diferença entre os dois de 3B está dentro do ruído; a diferença para o 7B e para o Gemini não está.
+
+**D50 — No n8n, o pós-processamento roda sem zod** (15/10)
+- Contexto: ao testar no n8n 2.43, os nós de código falharam (`Extracao.buildPrompt is not a function`, depois `util_exports.derived is not a function`). O task runner do n8n executa `Object.defineProperty = () => ({})` dentro do sandbox, por segurança. O zod e os módulos empacotados pelo esbuild dependem disso.
+- Opções:
+  - restaurar `defineProperty` dentro do nó: contorna uma proteção da plataforma, então descartei;
+  - reescrever a validação para o n8n: duplica código;
+  - separar o que não precisa de zod.
+- Escolha: o núcleo (lastro, confiança e envelope) foi para `lib/agent/refine.ts`, sem zod.
+  - O `postProcess` do banco de testes valida com zod e usa esse núcleo.
+  - O n8n usa `postProcessLite`: o mesmo núcleo, com checagem mínima de formato.
+  - O endpoint, que recebe um evento por requisição, faz a validação zod completa e responde 422 por evento.
+  - Um teste garante que as duas versões produzem os mesmos eventos.
+- Efeito colateral bom: o nó de pós-processamento caiu de 450 KB para 5 KB.
+
+**D51 — Cliente provisório criado por eventos simultâneos** (15/10)
+- Contexto: encontrado no teste ponta a ponta. O n8n enviou 3 eventos da mesma conversa ao mesmo tempo, e as 3 transações tentaram criar o mesmo cliente provisório. O índice único do telefone barrou a duplicata (os dados ficaram certos), mas 2 eventos voltaram com 500.
+- Escolha: `INSERT ... ON CONFLICT (phone_e164) DO NOTHING`; se outra transação criou o cliente, o evento é relido e aplicado a ele. Verificado com 5 eventos simultâneos no Postgres do Neon: todos 201, um só cliente. O PGlite dos testes automáticos usa uma única conexão e não reproduz concorrência, então essa verificação foi manual.

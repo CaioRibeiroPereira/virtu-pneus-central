@@ -17,6 +17,8 @@ export type FieldCheck = {
 export type Score = {
   missing: string[];
   extra: string[];
+  /** Eventos fora do gabarito que seriam aplicados SEM passar pelo gestor (o erro que custa caro). */
+  extraApplied: string[];
   fields: FieldCheck[];
   routes: { type: string; expected: Route; got: Route; ok: boolean }[];
   /** Tipos esperados encontrados + campos-chave certos + rotas certas, sobre o total possível. */
@@ -98,6 +100,10 @@ export function scoreExtraction(
     if (route.ok) points += 1;
   }
 
-  const extra = got.map((e) => e.type).filter((type) => !expectedTypes.has(type));
-  return { missing, extra, fields, routes, points, maxPoints };
+  const extraEvents = got.filter((e) => !expectedTypes.has(e.type));
+  const extra = extraEvents.map((e) => e.type);
+  const extraApplied = extraEvents
+    .filter((e) => routeOf(e.type, e.confidence, threshold) === "aplica")
+    .map((e) => e.type);
+  return { missing, extra, extraApplied, fields, routes, points, maxPoints };
 }

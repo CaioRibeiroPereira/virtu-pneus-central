@@ -10,27 +10,37 @@ import { buildSync } from "esbuild";
 import { writeFileSync } from "node:fs";
 import { EXTRACTION_PROMPT_VERSION, extractionJsonSchema } from "@/lib/agent/extraction";
 
-const pack = (contents: string) =>
+// Empacota uma função do repositório e a pendura em `Extracao` por atribuição simples. (O formato
+// com globalName do esbuild expõe as funções por getters — Object.defineProperty —, que o sandbox
+// do task runner do n8n não preserva: "Extracao.buildPrompt is not a function".)
+const pack = (name: string, from: string) =>
+  "const Extracao = {};\n" +
   buildSync({
-    stdin: { contents, resolveDir: process.cwd(), loader: "ts" },
+    stdin: {
+      contents: `import { ${name} } from "${from}";\nExtracao.${name} = ${name};`,
+      resolveDir: process.cwd(),
+      loader: "ts",
+    },
     bundle: true,
     format: "iife",
-    globalName: "Extracao",
     platform: "neutral",
     target: "es2022",
-    minify: true,
+    // Sem renomear variáveis: o código continua legível dentro do nó do n8n.
+    minifyWhitespace: true,
+    minifySyntax: true,
     tsconfig: "tsconfig.json",
     write: false,
   }).outputFiles[0].text;
 
 // O prompt não usa zod (leve); o formato pedido à IA é fixo e vai pronto, como JSON.
-const promptBundle = pack(`export { buildPrompt } from "./lib/agent/prompt";`);
+const promptBundle = pack("buildPrompt", "./lib/agent/prompt");
 const schemaJson = JSON.stringify(extractionJsonSchema());
-// Só o pós-processamento precisa do zod (validação completa do contrato).
-const postBundle = pack(`export { postProcess } from "./lib/agent/extraction";`);
+// Pós-processamento sem zod (D50): o sandbox do n8n desativa Object.defineProperty, de que o zod
+// depende. A validação completa do contrato acontece no endpoint, evento a evento.
+const postBundle = pack("postProcessLite", "./lib/agent/refine");
 
 const banner = (what: string) =>
-  `// ${what}\n// GERADO por scripts/gerar-workflow-n8n.ts a partir de lib/agent/extraction.ts ` +
+  `// ${what}\n// GERADO por scripts/gerar-workflow-n8n.ts a partir de lib/agent/ (prompt.ts, refine.ts) ` +
   `(${EXTRACTION_PROMPT_VERSION}). Não edite aqui: edite o repositório e gere de novo.\n`;
 
 // Configuração lida das variáveis de ambiente do n8n (docker-compose / .env), com padrões locais.
@@ -54,7 +64,8 @@ const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }
 const prompt = Extracao.buildPrompt({ messages: body.messages, today });
 const schema = SCHEMA;
 const geminiModel = env("VITO_GEMINI_MODEL", "gemini-3.5-flash");
-const ollamaModel = env("VITO_OLLAMA_MODEL", "qwen2.5:3b");
+const geminiFallbackModel = env("VITO_GEMINI_FALLBACK_MODEL", "gemini-3.5-flash-lite");
+const ollamaModel = env("VITO_OLLAMA_MODEL", "llama3.2:3b");
 
 return [{
   json: {
@@ -68,6 +79,7 @@ return [{
       occurredAt: body.occurred_at || new Date().toISOString(),
     },
     geminiUrl: "https://generativelanguage.googleapis.com/v1beta/models/" + geminiModel + ":generateContent",
+    geminiFallbackUrl: "https://generativelanguage.googleapis.com/v1beta/models/" + geminiFallbackModel + ":generateContent",
     geminiBody: {
       systemInstruction: { parts: [{ text: prompt.system }] },
       contents: [{ role: "user", parts: [{ text: prompt.user }] }],
@@ -95,12 +107,12 @@ const text = response.candidates
   ? (response.candidates[0]?.content?.parts ?? []).map((p) => p.text ?? "").join("")
   : response.message?.content ?? "";
 const c = request.conversation;
-const out = Extracao.postProcess(text, c.messages, {
+const out = Extracao.postProcessLite(text, c.messages, {
   phone: c.phone,
   conversationId: c.conversationId,
   messageIds: c.messageIds,
   occurredAt: c.occurredAt,
-  model: request.model,
+  model: response.modelVersion || response.model || request.model, // quem respondeu de fato (pode ser o reserva)
 });
 if (out.error) throw new Error("Extração inválida: " + out.error);
 const appUrl = env("VITO_APP_URL", "http://host.docker.internal:3000").replace(/\\/$/, "");
@@ -115,7 +127,15 @@ const headerAuth = {
   genericAuthType: "httpHeaderAuth",
 };
 
+// Referência às credenciais (só id e nome; o VALOR fica no n8n). Quem criar credenciais com outros
+// ids escolhe nos nós depois de importar.
+const CREDENTIALS = {
+  gemini: { id: "vitoGeminiKey001", name: "Gemini (x-goog-api-key)" },
+  agent: { id: "vitoAgentToken01", name: "Sistema Virtù (Bearer)" },
+};
+
 const workflow = {
+  id: "vitoExtracao0001",
   name: "Vito — extração de conversas (Gemini ou Ollama)",
   nodes: [
     {
@@ -186,9 +206,12 @@ const workflow = {
       type: "n8n-nodes-base.httpRequest",
       typeVersion: 4.2,
       position: [720, 120],
+      credentials: { httpHeaderAuth: CREDENTIALS.gemini },
       retryOnFail: true, // 429/503 são comuns no plano gratuito
-      maxTries: 4,
-      waitBetweenTries: 4000,
+      maxTries: 2,
+      waitBetweenTries: 3000,
+      // Esgotadas as tentativas, a saída de erro leva ao modelo reserva (D43).
+      onError: "continueErrorOutput",
       parameters: {
         method: "POST",
         url: "={{ $json.geminiUrl }}",
@@ -196,6 +219,27 @@ const workflow = {
         sendBody: true,
         specifyBody: "json",
         jsonBody: "={{ JSON.stringify($json.geminiBody) }}",
+        options: { timeout: 60000 },
+      },
+    },
+    {
+      id: "a1f0c7e2-0008-4c1a-9b10-000000000008",
+      name: "Gemini (modelo reserva)",
+      type: "n8n-nodes-base.httpRequest",
+      typeVersion: 4.2,
+      position: [960, 240],
+      credentials: { httpHeaderAuth: CREDENTIALS.gemini },
+      retryOnFail: true,
+      maxTries: 3,
+      waitBetweenTries: 4000,
+      parameters: {
+        method: "POST",
+        // O item que chega é o erro do nó anterior: o pedido vem do nó que o montou.
+        url: "={{ $('Montar pedido à IA').first().json.geminiFallbackUrl }}",
+        ...headerAuth,
+        sendBody: true,
+        specifyBody: "json",
+        jsonBody: "={{ JSON.stringify($('Montar pedido à IA').first().json.geminiBody) }}",
         options: { timeout: 60000 },
       },
     },
@@ -213,9 +257,12 @@ const workflow = {
       type: "n8n-nodes-base.httpRequest",
       typeVersion: 4.2,
       position: [1200, 0],
+      credentials: { httpHeaderAuth: CREDENTIALS.agent },
       retryOnFail: true,
       maxTries: 3,
       waitBetweenTries: 2000,
+      // Um evento recusado (422) não impede o envio dos outros; a resposta fica na execução.
+      onError: "continueRegularOutput",
       parameters: {
         method: "POST",
         url: "={{ $json.url }}",
@@ -237,7 +284,13 @@ const workflow = {
       ],
     },
     "Ollama (local)": { main: [[{ node: "Pós-processar", type: "main", index: 0 }]] },
-    Gemini: { main: [[{ node: "Pós-processar", type: "main", index: 0 }]] },
+    Gemini: {
+      main: [
+        [{ node: "Pós-processar", type: "main", index: 0 }],
+        [{ node: "Gemini (modelo reserva)", type: "main", index: 0 }],
+      ],
+    },
+    "Gemini (modelo reserva)": { main: [[{ node: "Pós-processar", type: "main", index: 0 }]] },
     "Pós-processar": { main: [[{ node: "Enviar ao sistema", type: "main", index: 0 }]] },
   },
   settings: { executionOrder: "v1" },

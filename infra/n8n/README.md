@@ -6,8 +6,8 @@ cada um ao endpoint `POST /api/agent-events` do sistema. O **provedor é escolhi
 
 | Provedor | Quando usar | Custo | Dados |
 |---|---|---|---|
-| **Gemini** (`gemini-3.5-flash`) | demonstração, melhor qualidade | plano gratuito (com limite) | saem para o Google — **só dados fictícios** |
-| **Ollama** (`qwen2.5:7b`, local) | produção com dados reais (LGPD) | só o computador da loja | **não saem da máquina** |
+| **Gemini** (`gemini-3.5-flash`) | demonstração, melhor qualidade (97% no banco de testes) | plano gratuito (com limite) | saem para o Google — **só dados fictícios** |
+| **Ollama** (`llama3.2:3b`, local) | dados reais (LGPD); acerta menos (62%), mas o que erra vai para a revisão | só o computador da loja | **não saem da máquina** |
 
 ```mermaid
 flowchart LR
@@ -15,8 +15,10 @@ flowchart LR
   M --> P{Qual provedor?}
   P -- ollama --> O[HTTP<br/>Ollama local]
   P -- gemini --> G[HTTP<br/>Gemini]
+  G -- falhou após novas tentativas --> GR[HTTP<br/>Gemini modelo reserva]
   O --> PP[Code<br/>Pós-processar]
   G --> PP
+  GR --> PP
   PP -->|1 item por evento| E[HTTP<br/>POST /api/agent-events]
 ```
 
@@ -26,8 +28,16 @@ flowchart LR
 
 - o nó **Montar pedido à IA** traz o `buildPrompt` de `lib/agent/prompt.ts` e o JSON Schema derivado
   do contrato zod (`lib/agent/schema.ts`) — o mesmo para Gemini (`responseJsonSchema`) e Ollama (`format`);
-- o nó **Pós-processar** traz o `postProcess` de `lib/agent/extraction.ts` (validação evento a
-  evento, telefone vindo do metadado e nunca do texto, confiança recalculada).
+- o nó **Pós-processar** traz o `postProcessLite` de `lib/agent/refine.ts`: lastro na conversa,
+  confiança recalculada, telefone vindo do metadado e nunca do texto. É o mesmo núcleo do
+  `postProcess` do banco de testes, só que **sem zod**: o sandbox do n8n desativa
+  `Object.defineProperty`, de que o zod depende (D50). A validação completa do contrato fica com o
+  endpoint, que recebe um evento por requisição. Um teste garante que as duas versões geram os
+  mesmos eventos.
+
+Se o Gemini continuar falhando após as novas tentativas (429/503 do plano gratuito), a saída de erro
+do nó leva ao **modelo reserva** (`VITO_GEMINI_FALLBACK_MODEL`). O evento registra o modelo que de
+fato respondeu.
 
 Mudou o prompt ou o contrato? Gere de novo e reimporte. O banco de testes
 (`scripts/avaliar-extracao.ts`, resultado em `docs/AVALIACAO_IA.md`) usa exatamente o mesmo código.
@@ -40,23 +50,52 @@ docker compose -f infra/n8n/docker-compose.yml up -d
 # abra http://localhost:5678 e crie a conta de dono (fica só no volume local)
 ```
 
-Sem Docker: `npx n8n` funciona igual — defina antes as mesmas variáveis `VITO_*` e
-`N8N_BLOCK_ENV_ACCESS_IN_NODE=false`, e use `localhost` no lugar de `host.docker.internal`.
+> No Windows, instalar o n8n pelo npm falhou ao compilar uma dependência nativa (`isolated-vm`
+> exige o Visual Studio Build Tools); por isso o caminho testado é o Docker.
 
 Ollama (opcional, para o provedor local):
 
 ```bash
-ollama pull qwen2.5:7b      # ~4,7 GB; qwen2.5:3b (~1,9 GB) é mais leve, porém erra mais
+ollama pull llama3.2:3b     # ~2 GB; o melhor local no banco de testes (docs/AVALIACAO_IA.md)
 ```
 
 ## Importar e configurar
 
-1. **Workflows → Import from File** → `infra/n8n/workflows/vito-extracao.json`.
-2. Crie duas credenciais do tipo **Header Auth** (os segredos ficam só no n8n, nunca no JSON):
-   - *Gemini*: nome `x-goog-api-key`, valor = sua chave do Google AI Studio → selecione no nó **Gemini**;
-   - *Sistema Virtù*: nome `Authorization`, valor = `Bearer <AGENT_API_TOKEN>` → selecione no nó
-     **Enviar ao sistema**.
-3. Ative o workflow.
+**Pela interface:** *Workflows → Import from File* → `infra/n8n/workflows/vito-extracao.json`; crie
+duas credenciais do tipo **Header Auth** e selecione nos nós (os segredos ficam só no n8n):
+
+- *Gemini (x-goog-api-key)*: nome `x-goog-api-key`, valor = chave do Google AI Studio → nós **Gemini**
+  e **Gemini (modelo reserva)**;
+- *Sistema Virtù (Bearer)*: nome `Authorization`, valor = `Bearer <AGENT_API_TOKEN>` → nó
+  **Enviar ao sistema**.
+
+Depois, publique (ative) o workflow.
+
+**Pela linha de comando** (foi assim que testei): o workflow já referencia as credenciais pelos ids
+`vitoGeminiKey001` e `vitoAgentToken01`. Crie um `creds.json` **fora do repositório**:
+
+```json
+[
+  { "id": "vitoGeminiKey001", "name": "Gemini (x-goog-api-key)", "type": "httpHeaderAuth",
+    "data": { "name": "x-goog-api-key", "value": "<chave>" } },
+  { "id": "vitoAgentToken01", "name": "Sistema Virtù (Bearer)", "type": "httpHeaderAuth",
+    "data": { "name": "Authorization", "value": "Bearer <AGENT_API_TOKEN>" } }
+]
+```
+
+```bash
+C=$(docker compose -f infra/n8n/docker-compose.yml ps -q n8n)
+docker cp creds.json $C:/tmp/creds.json && rm creds.json
+docker cp infra/n8n/workflows/vito-extracao.json $C:/tmp/wf.json
+docker exec $C n8n import:credentials --input=/tmp/creds.json   # o n8n criptografa ao importar
+docker exec $C n8n import:workflow --input=/tmp/wf.json
+docker exec $C n8n publish:workflow --id=vitoExtracao0001
+docker exec -u root $C rm -f /tmp/creds.json /tmp/wf.json
+docker compose -f infra/n8n/docker-compose.yml restart
+```
+
+(No Git Bash do Windows, rode antes `export MSYS_NO_PATHCONV=1`, senão os caminhos `/tmp/...`
+viram caminhos do Windows.)
 
 ## Testar
 
@@ -65,8 +104,9 @@ curl -X POST http://localhost:5678/webhook/vito-conversa \
   -H "content-type: application/json" -d @infra/n8n/exemplo-conversa.json
 ```
 
-A resposta é imediata (o WhatsApp exige resposta rápida); o resultado aparece em **Executions** no
-n8n e no sistema: cliente provisório, orçamento e agendamento aplicados, ou itens na **Revisão**
+Para escolher o provedor, mude `"provider"` no JSON (`"gemini"` ou `"ollama"`). A resposta é
+imediata (o WhatsApp exige resposta rápida); o resultado aparece em **Executions** no n8n e no
+sistema: cliente provisório, orçamento e agendamento aplicados, ou itens na **Revisão**
 quando a confiança é baixa ou o evento mexe com dinheiro. Reenviar a mesma conversa com o mesmo
 `conversation_id` não duplica nada: o endpoint responde `duplicate` (idempotência por `event_id`).
 
@@ -76,3 +116,16 @@ quando a confiança é baixa ou o evento mexe com dinheiro. Reenviar a mesma con
 - Nenhuma chave no repositório: `infra/n8n/.env` é ignorado pelo git e as chaves ficam nas credenciais.
 - O endpoint revalida tudo (token, tamanho, contrato zod) — o n8n não é confiável por padrão.
 - Com o Gemini, só conversas fictícias (o plano gratuito pode usar os dados para treino).
+
+## Resultado do teste ponta a ponta (15/10/2026)
+
+Conversa de `exemplo-conversa.json` (Tiago, alinhamento do HB20, "amanhã às 8h"), com o sistema
+rodando localmente e o mesmo banco do Neon:
+
+| Provedor | Eventos aplicados | Tempo |
+|---|---|---|
+| Gemini (o principal estava sem cota; respondeu o reserva `gemini-3.5-flash-lite`) | cliente, veículo, orçamento de R$ 90 e agendamento para o dia seguinte às 8h | ~8 s |
+| Ollama `llama3.2:3b` | cliente, veículo e orçamento (não extraiu o agendamento) | ~13 s |
+
+Esse teste também revelou uma condição de corrida no endpoint quando vários eventos da mesma
+conversa chegam juntos, já corrigida (D51).
