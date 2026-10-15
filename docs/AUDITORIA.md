@@ -453,3 +453,38 @@ Incidente: duas cópias do `playwright-core` (1.64.0 e 1.64.1) quebravam os tipo
 | Lint | `npm run lint` | 0 problemas |
 | Unidade + integração | `npm test` | 121 passando |
 | Acessibilidade (E2E) | `npm run test:e2e` | 5 passando, 0 violações |
+
+---
+
+## Etapa 6 — Fase 4: revisão e simulador (15/10/2026)
+
+**Objetivo:** fila de revisão e simulador (§9) com as conversas do §12.3; testes E2E e de acessibilidade do §13. Decisões D38–D41.
+
+### 6.1 Fila de revisão
+- `lib/review/commands.ts`: `approveReview` (aprovar, editar e aprovar, associar/criar cliente) e `rejectReview`, em transação, com auditoria e regras.
+- `lib/review/queries.ts`: pendentes com "hoje no sistema × proposta do Vito"; decididas recentemente; lista de clientes para associar.
+- `app/(app)/revisao` + `components/review-card.tsx`.
+- Ficha: decisões de revisão entram na linha do tempo.
+
+Incidente: as sugestões criadas pelo seed não podiam ser aprovadas (`needs_customer`), porque o seed gravava a proposta num formato diferente do pipeline. Corrigido nos dois lados: seed no mesmo formato e aprovação aceitando o cliente registrado no evento.
+
+### 6.2 Simulador
+- `simulator/presets/*.json`: 6 conversas (cliente novo com orçamento; aprovação de orçamento; agendamento no sábado; reclamação pós-troca; número desconhecido; reenvio).
+- `lib/simulator/presets.ts`: envelope do §8.1, datas relativas, `event_id` estável.
+- `app/(app)/simulador/actions.ts`: envio HTTP ao `/api/agent-events` pelo servidor, JSON livre e "Reiniciar demonstração".
+
+Revisão de segurança durante a escrita: a primeira versão montava a URL do endpoint a partir do cabeçalho `Host`/`x-forwarded-host`; trocada por fontes confiáveis (D38).
+
+### 6.3 Testes
+```bash
+npm test             # 136 passando (unidade + integração), incluindo a fila de revisão e os presets
+npm run build && npx playwright test   # 7 passando
+```
+- `tests/integration/review.test.ts`: alto impacto aprovado (orçamento aprovado, R1 cancelado, decisão auditada); decidir duas vezes é recusado; conflito aprovado aceita o valor do agente; cliente desconhecido exige escolha; correção inválida recusada; criar cliente e aplicar com correção; rejeitar não altera nada.
+- `tests/unit/presets.test.ts`: os 6 presets passam no contrato do §8; o reenvio usa os mesmos `event_id`; datas relativas.
+- `tests/e2e/flows.spec.ts`: Hoje → concluir → linha do tempo; simulador → aplicado (3) → reenvio "duplicate" (3) → alto impacto → aprovar na revisão → orçamento aprovado e decisão na ficha. Cada teste reinicia a demonstração antes e depois.
+
+Problemas encontrados pelos testes E2E (2 reais, 1 do próprio teste):
+1. axe: links distinguíveis só pela cor (WCAG 1.4.1) → links sublinhados.
+2. sem confirmação ao decidir uma sugestão → aviso dentro da ação (D41).
+3. o teste esperava "Enviado para a sua revisão" com `getByText` simples, que ignora maiúsculas e aceita trecho, e casou com a introdução da página → verificação restrita à lista de respostas e com texto exato.

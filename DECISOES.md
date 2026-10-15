@@ -165,3 +165,20 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
 
 **D37 — Testes E2E com o Chrome instalado e o banco do Neon** (14/10)
 - `channel: "chrome"` evita baixar navegadores (o disco C: estava cheio). Os testes de acessibilidade só leem dados; o banco de desenvolvimento é o mesmo da demo (um projeto Neon). Para testes que gravam (Fase 4), usar o seed ("Reiniciar demonstração") antes e depois. Próximo passo fora do prazo: um branch do Neon só para testes.
+
+## Decisões da Fase 4
+
+**D38 — Simulador chama o endpoint real por HTTP, com URL confiável** (15/10)
+- Contexto: o plano pede que o simulador use o mesmo endpoint dos agentes sem expor o token ao navegador.
+- Opções: chamar a função do handler direto; fazer uma requisição HTTP a partir do servidor.
+- Escolha: requisição HTTP do servidor (mesmo caminho do n8n: proxy, token, validação). A URL vem do domínio de produção informado pela Vercel (`VERCEL_PROJECT_PRODUCTION_URL`) ou de `localhost`, nunca do cabeçalho `Host` da requisição.
+- Motivo: montar a URL pelo `Host` permitiria forjar o cabeçalho e fazer o servidor enviar o token a outro site (SSRF). Em deploys de preview (protegidos pela Vercel) o mesmo handler roda no próprio servidor.
+
+**D39 — Presets em JSON com marcadores de data e event_id por dia** (15/10)
+- `simulator/presets/*.json` guarda só o essencial; o envelope do §8.1 e as datas (`$TODAY`, `$TODAY+N`, `$NEXT_SATURDAY@HH:MM`) são resolvidos na hora. O `event_id` é `sim-<conversa>-<n>-<dia>`: reenviar no mesmo dia mostra a idempotência; "Reiniciar demonstração" limpa e permite processar de novo.
+
+**D40 — Aprovação na revisão reaproveita a aplicação automática** (15/10)
+- `approveReview` revalida o evento (com as correções do gestor) pelo mesmo schema zod e chama `applyAgentEvent` com `actor = gestor`. Em `conflito_edicao_humana`, aprovar significa aceitar o valor do agente (`overwrite`). Cliente desconhecido exige escolher um existente ou criar um novo. Decisão auditada como `review_decision`.
+
+**D41 — Aviso dentro da ação, não em efeito** (15/10)
+- Encontrado pelo teste E2E: ao decidir, o card sai da lista (revalidação) e é desmontado antes de um `useEffect` rodar, e o gestor ficava sem confirmação. O aviso passa a ser disparado dentro da própria ação.
