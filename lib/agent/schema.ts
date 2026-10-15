@@ -44,76 +44,69 @@ const envelope = {
 const event = <T extends string, D extends z.ZodTypeAny>(type: T, data: D) =>
   z.object({ ...envelope, type: z.literal(type), data });
 
+/** Formato de `data` de cada tipo de evento (§8.2). Reutilizado pelo pedido feito à IA (D42). */
+export const eventDataSchemas = {
+  "customer.upserted": z.object({
+    name: shortText(120).optional(),
+    email: z.email().optional(),
+    city: shortText(80).optional(),
+    origin: z.enum(["whatsapp", "indicacao", "balcao", "instagram", "google", "outro"]).optional(),
+  }),
+  "vehicle.identified": z.object({
+    plate: z.string().max(10).optional(),
+    model: shortText(80).optional(),
+    year: z.number().int().min(1950).max(2100).optional(),
+    tire_size: shortText(30).optional(),
+  }),
+  "interaction.logged": z.object({
+    summary: shortText(1000),
+    channel: z.enum(["whatsapp", "telefone", "balcao"]),
+  }),
+  "quote.created": z.object({
+    description: shortText(500),
+    total: z.number().nonnegative().max(1_000_000),
+    tire_size: shortText(30).optional(),
+    quantity: z.number().int().positive().max(100).optional(),
+    valid_until: dateOnly.optional(),
+    vehicle_plate: z.string().max(10).optional(),
+  }),
+  "task.suggested": z.object({
+    type: z.enum([
+      "retorno_comercial",
+      "followup_orcamento",
+      "pos_venda",
+      "confirmar_agendamento",
+      "outro",
+    ]),
+    title: shortText(120),
+    reason: shortText(300),
+    due_date: dateOnly,
+  }),
+  "appointment.requested": z.object({ scheduled_at: instant, service_type: serviceType }),
+  "quote.status_changed": z.object({
+    status: z.enum(["aprovado", "recusado"]),
+    reason: shortText(300).optional(),
+    quote_id: z.uuid().optional(),
+  }),
+  "service.completed": z.object({
+    type: serviceType,
+    description: shortText(500),
+    performed_at: instant,
+    total: z.number().nonnegative().max(1_000_000).optional(),
+    km: z.number().int().nonnegative().max(5_000_000).optional(),
+  }),
+} as const;
+
+const d = eventDataSchemas;
 export const agentEventSchema = z.discriminatedUnion("type", [
-  event(
-    "customer.upserted",
-    z.object({
-      name: shortText(120).optional(),
-      email: z.email().optional(),
-      city: shortText(80).optional(),
-      origin: z
-        .enum(["whatsapp", "indicacao", "balcao", "instagram", "google", "outro"])
-        .optional(),
-    }),
-  ),
-  event(
-    "vehicle.identified",
-    z.object({
-      plate: z.string().max(10).optional(),
-      model: shortText(80).optional(),
-      year: z.number().int().min(1950).max(2100).optional(),
-      tire_size: shortText(30).optional(),
-    }),
-  ),
-  event(
-    "interaction.logged",
-    z.object({ summary: shortText(1000), channel: z.enum(["whatsapp", "telefone", "balcao"]) }),
-  ),
-  event(
-    "quote.created",
-    z.object({
-      description: shortText(500),
-      total: z.number().nonnegative().max(1_000_000),
-      tire_size: shortText(30).optional(),
-      quantity: z.number().int().positive().max(100).optional(),
-      valid_until: dateOnly.optional(),
-      vehicle_plate: z.string().max(10).optional(),
-    }),
-  ),
-  event(
-    "task.suggested",
-    z.object({
-      type: z.enum([
-        "retorno_comercial",
-        "followup_orcamento",
-        "pos_venda",
-        "confirmar_agendamento",
-        "outro",
-      ]),
-      title: shortText(120),
-      reason: shortText(300),
-      due_date: dateOnly,
-    }),
-  ),
-  event("appointment.requested", z.object({ scheduled_at: instant, service_type: serviceType })),
-  event(
-    "quote.status_changed",
-    z.object({
-      status: z.enum(["aprovado", "recusado"]),
-      reason: shortText(300).optional(),
-      quote_id: z.uuid().optional(),
-    }),
-  ),
-  event(
-    "service.completed",
-    z.object({
-      type: serviceType,
-      description: shortText(500),
-      performed_at: instant,
-      total: z.number().nonnegative().max(1_000_000).optional(),
-      km: z.number().int().nonnegative().max(5_000_000).optional(),
-    }),
-  ),
+  event("customer.upserted", d["customer.upserted"]),
+  event("vehicle.identified", d["vehicle.identified"]),
+  event("interaction.logged", d["interaction.logged"]),
+  event("quote.created", d["quote.created"]),
+  event("task.suggested", d["task.suggested"]),
+  event("appointment.requested", d["appointment.requested"]),
+  event("quote.status_changed", d["quote.status_changed"]),
+  event("service.completed", d["service.completed"]),
 ]);
 
 export type AgentEvent = z.infer<typeof agentEventSchema>;

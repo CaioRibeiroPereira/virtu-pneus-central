@@ -182,3 +182,13 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
 
 **D41 — Aviso dentro da ação, não em efeito** (15/10)
 - Encontrado pelo teste E2E: ao decidir, o card sai da lista (revalidação) e é desmontado antes de um `useEffect` rodar, e o gestor ficava sem confirmação. O aviso passa a ser disparado dentro da própria ação.
+
+## Decisões da Fase 5
+
+**D42 — IA com dois provedores e seletor (substitui a D9)** (15/10)
+- Contexto: a D9 previa Gemini (plano gratuito) com Ollama só documentado. Ao detalhar a camada de IA, ficou claro que cada um resolve um problema diferente.
+- Opções: só Gemini; só Ollama; os dois com um seletor.
+- Escolha: os dois, com o MESMO prompt, o MESMO JSON Schema (gerado do contrato zod) e a MESMA validação; o provedor é escolhido no workflow do n8n.
+  - Gemini: demo rápida e de alta qualidade, só com conversas fictícias (o plano gratuito usa o conteúdo para melhorar produtos).
+  - Ollama (local, CPU): caminho para dados reais — as conversas não saem da loja (LGPD).
+- Motivo: comparar com números reais (banco de testes com as 6 conversas do simulador, acerto e tempo por provedor) e defender a escolha por dados, não por opinião. A demo publicada continua usando o simulador; a IA real é mostrada em vídeo/ao vivo.
