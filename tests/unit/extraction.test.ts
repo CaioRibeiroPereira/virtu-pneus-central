@@ -22,10 +22,11 @@ describe("formato pedido à IA", () => {
     expect(text).not.toContain("quote_id"); // a IA não conhece ids internos
   });
 
-  it("o prompt informa o dia da semana e a data de hoje", () => {
-    expect(buildPrompt({ messages: conversation, today: "2026-10-14" }).system).toContain(
-      "quarta-feira, 2026-10-14",
-    );
+  it("o prompt traz o calendário dos próximos dias (modelos pequenos erram essa conta)", () => {
+    const { system } = buildPrompt({ messages: conversation, today: "2026-10-14" });
+    expect(system).toContain("quarta-feira 2026-10-14 (hoje)");
+    expect(system).toContain("quinta-feira 2026-10-15 (amanhã)");
+    expect(system).toContain("sábado 2026-10-17");
   });
 });
 

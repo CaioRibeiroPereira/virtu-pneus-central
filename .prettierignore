@@ -6,3 +6,6 @@ vendor
 docs/diagnostico-screenshots
 # Documentos escritos à mão: mantidos como estão
 *.md
+
+# Gerado por scripts/gerar-workflow-n8n.ts
+infra/n8n/workflows

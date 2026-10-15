@@ -1,0 +1,14 @@
+{
+  "provider": "ollama",
+  "phone": "(19) 90000-0031",
+  "conversation_id": "exemplo-n8n-1",
+  "messages": [
+    {
+      "from": "cliente",
+      "text": "Boa noite, aqui é o Tiago. Quanto sai o alinhamento do meu HB20 2019?"
+    },
+    { "from": "vito", "text": "Oi, Tiago! O alinhamento fica R$ 90,00. Quer agendar?" },
+    { "from": "cliente", "text": "Quero sim, amanhã às 8h dá?" },
+    { "from": "vito", "text": "Fechado, amanhã às 8h está reservado para você." }
+  ]
+}

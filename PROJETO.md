@@ -1,3 +1,5 @@
+> **Histórico:** descrição do protótipo original, preservada do snapshot. Para o sistema atual, veja o [README](README.md).
+
 # Sistema de atendimento — Pneus
 
 CRM demonstrativo para acompanhamento do agente de atendimento de uma loja de pneus, com visão geral, clientes, funil de vendas e ficha do cliente.

@@ -192,3 +192,31 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
   - Gemini: demo rápida e de alta qualidade, só com conversas fictícias (o plano gratuito usa o conteúdo para melhorar produtos).
   - Ollama (local, CPU): caminho para dados reais — as conversas não saem da loja (LGPD).
 - Motivo: comparar com números reais (banco de testes com as 6 conversas do simulador, acerto e tempo por provedor) e defender a escolha por dados, não por opinião. A demo publicada continua usando o simulador; a IA real é mostrada em vídeo/ao vivo.
+
+**D43 — Falhas passageiras do Gemini: novas tentativas e modelos reserva** (15/10)
+- Contexto: no plano gratuito, o `gemini-3.5-flash` alternou entre 503 (alta demanda), 429 (limite) e quedas de conexão (`ECONNRESET`) no mesmo dia.
+- Escolha: até 2 tentativas por modelo com espera crescente (2 s, 4 s, 8 s) para 429/5xx e falhas de rede; esgotadas, passa ao próximo de `GEMINI_FALLBACK_MODELS`. Erro de chave ou de formato (400/403) falha na hora: trocar de modelo não resolveria. No n8n, o nó HTTP usa "Retry on fail".
+
+**D44 — Como o banco de testes dá nota** (15/10)
+- Por conversa: 1 ponto por tipo de evento esperado que apareceu, 1 por campo-chave certo (valor, placa, medida, data do agendamento, status, tipo e prazo da tarefa) e 1 se a **rota** (aplica sozinho × revisão) bate com o gabarito. Texto livre (resumos) não é comparado.
+- Eventos a mais não tiram ponto, mas são listados. Antes de aceitar isso, conferimos o pior caso: um `customer.upserted` com o nome usado no cumprimento ("Ótimo, Ricardo!") não sobrescreve nada, porque o agente só preenche campos vazios e conflito com edição do gestor vai para a revisão (D10).
+- Motivo: a rota é o que protege o cadastro. Errar "para o lado da revisão" custa um clique do gestor; errar para "aplica" grava dado errado.
+
+**D45 — Prompt v2: calendário pronto e regras de interpretação** (15/10)
+- Os ajustes vieram dos erros medidos e valem para qualquer conversa, não para as do teste (os exemplos do prompt continuam fora do conjunto de teste):
+  - nome só quando o próprio cliente se apresenta;
+  - "vou ver" não é aprovação;
+  - agendamento só com dia e horário confirmados pela loja;
+  - significado de cada tipo de tarefa;
+  - medida e placa curtas;
+  - mensagem vaga ainda vira registro de atendimento, com confiança baixa;
+  - lista pronta dos próximos 8 dias com o dia da semana (modelos pequenos erravam "sábado").
+- O prompt foi para `lib/agent/prompt.ts`, sem dependências, para o n8n empacotá-lo sozinho.
+
+**D46 — Workflow do n8n gerado a partir do repositório** (15/10)
+- Contexto: copiar o prompt e o pós-processamento para dentro do n8n criaria duas versões que divergem com o tempo.
+- Escolha: `scripts/gerar-workflow-n8n.ts` empacota (esbuild) o `buildPrompt` e o `postProcess` reais nos nós de código e embute o JSON Schema derivado do zod. Credenciais (chave do Gemini, token do endpoint) ficam só no n8n, nunca no JSON exportado.
+- Custo: o nó de pós-processamento carrega o zod (cerca de 450 KB de código). É aceitável num nó de código e garante a mesma validação do banco de testes.
+
+**D47 — Ferramentas locais fora do disco C:** (15/10)
+- O C: estava com menos de 1 GB livre. O Ollama (programa e modelos, via `OLLAMA_MODELS`) e o n8n de teste ficaram no D:. O disco virtual do Docker fica no C:, então o n8n foi testado com `npx n8n`; o `docker-compose.yml` fica no repositório para quem for avaliar.
