@@ -44,6 +44,8 @@ A extração a partir da conversa roda no **n8n** com **Gemini ou Ollama (local)
 e a mesma validação ([`infra/n8n/`](infra/n8n/README.md)). A comparação medida está em
 [`docs/AVALIACAO_IA.md`](docs/AVALIACAO_IA.md).
 
+![Execução do workflow no n8n: Gemini falhou por cota, o modelo reserva respondeu e 4 eventos foram enviados ao sistema](docs/screenshots/n8n/02-execucao-gemini-reserva.png)
+
 ## Stack
 
 Next.js 16 (App Router) · React 19 · TypeScript estrito · Tailwind 4 · Postgres (Neon) + Drizzle ·

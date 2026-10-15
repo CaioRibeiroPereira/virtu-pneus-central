@@ -22,6 +22,8 @@ flowchart LR
   PP -->|1 item por evento| E[HTTP<br/>POST /api/agent-events]
 ```
 
+![Workflow no n8n](../../docs/screenshots/n8n/01-workflow.png)
+
 ## Uma única fonte de verdade
 
 `workflows/vito-extracao.json` é **gerado** por `npx tsx scripts/gerar-workflow-n8n.ts`:
@@ -127,5 +129,9 @@ rodando localmente e o mesmo banco do Neon:
 | Gemini (o principal estava sem cota; respondeu o reserva `gemini-3.5-flash-lite`) | cliente, veículo, orçamento de R$ 90 e agendamento para o dia seguinte às 8h | ~8 s |
 | Ollama `llama3.2:3b` | cliente, veículo e orçamento (não extraiu o agendamento) | ~13 s |
 
-Esse teste também revelou uma condição de corrida no endpoint quando vários eventos da mesma
+| Gemini → modelo reserva → 4 eventos enviados | Ollama → 3 eventos enviados |
+|---|---|
+| ![Execução com o Gemini](../../docs/screenshots/n8n/02-execucao-gemini-reserva.png) | ![Execução com o Ollama](../../docs/screenshots/n8n/03-execucao-ollama.png) |
+
+As execuções com erro na lista são da depuração descrita nas D50 e D51. Esse teste também revelou uma condição de corrida no endpoint quando vários eventos da mesma
 conversa chegam juntos, já corrigida (D51).

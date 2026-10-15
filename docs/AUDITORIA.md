@@ -488,3 +488,70 @@ Problemas encontrados pelos testes E2E (2 reais, 1 do próprio teste):
 1. axe: links distinguíveis só pela cor (WCAG 1.4.1) → links sublinhados.
 2. sem confirmação ao decidir uma sugestão → aviso dentro da ação (D41).
 3. o teste esperava "Enviado para a sua revisão" com `getByText` simples, que ignora maiúsculas e aceita trecho, e casou com a introdução da página → verificação restrita à lista de respostas e com texto exato.
+
+---
+
+## Etapa 7 — Fase 5: IA real, n8n, documentação e entrega (15/10/2026)
+
+**Objetivo:** camada de IA com dois provedores (D42), banco de testes, workflow do n8n, Lighthouse, README, `docs/AGENTES_IA.md` e `RESUMO_ENTREGA.md`. Decisões D42–D51.
+
+### 7.1 Camada de IA
+- `lib/agent/prompt.ts`: prompt `extracao-v2`, sem dependências.
+- `lib/agent/extraction.ts`: JSON Schema gerado do contrato zod; `postProcess` com validação zod.
+- `lib/agent/refine.ts`: núcleo sem zod (lastro, confiança, envelope); `postProcessLite` para o n8n.
+- `lib/agent/llm.ts`: Gemini (novas tentativas, modelos reserva, falhas de rede) e Ollama (`format` = schema).
+
+Incidentes:
+- `gemini-2.5-flash` deu 404 para contas novas.
+- `3.8-flash` e `flash-latest` deram 503.
+- Houve `ECONNRESET`.
+- A cota diária do `3.5-flash` acabou no fim do dia.
+
+As soluções estão na D43.
+
+### 7.2 Banco de testes
+```bash
+npx tsx --env-file=.env.local scripts/avaliar-extracao.ts --provedor ambos \
+  --modelos-ollama qwen2.5:3b,llama3.2:3b,qwen2.5:7b --salvar   # → docs/AVALIACAO_IA.md
+```
+Evolução medida no Gemini: 69% (v1) → 93% → 97% → 100% (2 rodadas) → 97% na rodada final, respondida pelo modelo reserva. Locais: `llama3.2:3b` 62% com 0 indevidos (escolhido, D49); `qwen2.5:7b` 48% e inventou valores, o que levou ao lastro (D48).
+
+### 7.3 Ollama e Docker (disco C: com menos de 1 GB)
+```powershell
+setx OLLAMA_MODELS "D:\ollama\models"
+curl.exe -sSL -o D:\ollama\OllamaSetup.exe https://ollama.com/download/OllamaSetup.exe   # assinatura: Ollama Inc. (válida)
+$env:TEMP='D:\ollama\tmp'; Start-Process D:\ollama\OllamaSetup.exe -ArgumentList '/VERYSILENT','/DIR=D:\ollama\app' -Wait
+$env:OLLAMA_MODELS='D:\ollama\models'; D:\ollama\app\ollama.exe serve      # o servidor aberto pelo instalador ignorava a variável
+ollama pull qwen2.5:3b; ollama pull llama3.2:3b; ollama pull qwen2.5:7b
+```
+- n8n pelo npm: falhou ao compilar `isolated-vm`, que exige o Visual Studio Build Tools.
+- O Caio moveu o disco do Docker Desktop para `D:\Docker\DockerDesktopWSL`. Com isso o C: ficou com 22 GB livres.
+
+### 7.4 n8n ponta a ponta
+```bash
+npx tsx scripts/gerar-workflow-n8n.ts                  # → infra/n8n/workflows/vito-extracao.json
+docker compose -f infra/n8n/docker-compose.yml up -d   # n8n 2.43.6, porta só em 127.0.0.1
+# import:credentials (arquivo temporário apagado do container e do disco), import:workflow, publish:workflow
+curl -X POST localhost:5678/webhook/vito-conversa -H "content-type: application/json" -d @infra/n8n/exemplo-conversa.json
+```
+Problemas encontrados, em ordem:
+1. `Extracao.buildPrompt is not a function` → o task runner do n8n troca `Object.defineProperty` por uma função vazia (encontrado no código do runner); o empacotamento passou a usar atribuição simples.
+2. `util_exports.derived is not a function` → o zod também depende de `defineProperty`; o n8n passou a usar o núcleo sem zod (D50). Nó de 450 KB → 5 KB.
+3. Dois eventos com 500: corrida ao criar o cliente provisório → `ON CONFLICT DO NOTHING` (D51). Verificado com 5 eventos simultâneos no Neon: todos 201, um único cliente.
+4. Gemini 429 (cota diária) → nó "Gemini (modelo reserva)" na saída de erro.
+
+Resultado: Gemini (via reserva) com 4 eventos aplicados em 7,5 s; Ollama com 3 eventos em cerca de 13 s. Prints em `docs/screenshots/n8n/`.
+
+### 7.5 Lighthouse 13.5 na produção
+Login feito com o Playwright; o cookie de sessão foi passado por `--extra-headers` e guardado só na pasta temporária. Foram 6 telas × celular/computador.
+- Acessibilidade 100 em todas (antes: 89–95).
+- SEO 90 só por causa do link "Mais", mantido (ver o RESUMO).
+
+### 7.6 Verificações ao fim da etapa
+| O quê | Comando | Resultado |
+|---|---|---|
+| Formato / lint / tipos | `npm run format:check && npm run lint && npm run typecheck` | ok |
+| Unidade + integração | `npm test` | 151 passando |
+| E2E na produção | `E2E_BASE_URL=https://virtu-pneus-central.vercel.app npx playwright test` | 7 passando |
+| Segredos | `git diff --cached` procurando a chave do Gemini, a senha do Neon e o token | nada encontrado (a senha da demo está no README de propósito, §17) |
+| Demo limpa | `npm run db:seed` | dados de teste removidos; seed relativo a hoje |
