@@ -3,7 +3,13 @@ import { asc, desc, eq, inArray, ne } from "drizzle-orm";
 import type { Db } from "@/db";
 import { agentEvents, customers, quotes, reviewItems } from "@/db/schema";
 import type { AgentEvent } from "@/lib/agent/schema";
-import { formatMoney, originLabel, quoteStatusLabel } from "@/lib/labels";
+import {
+  channelLabel,
+  formatMoney,
+  originLabel,
+  quoteStatusLabel,
+  serviceTypeLabel,
+} from "@/lib/labels";
 
 export type Comparison = { field: string; current: string; proposed: string };
 
@@ -43,6 +49,11 @@ const FIELD_LABEL: Record<string, string> = {
   plate: "Placa",
   model: "Modelo",
   tire_size: "Medida",
+  channel: "Canal",
+  quantity: "Quantidade",
+  year: "Ano",
+  km: "Quilometragem",
+  valid_until: "Válido até",
 };
 
 export const fieldLabel = (f: string) => FIELD_LABEL[f] ?? f;
@@ -52,6 +63,9 @@ function show(field: string, value: unknown): string {
   if (field === "total" && typeof value === "number") return formatMoney(value);
   if (field === "origin") return originLabel[String(value)] ?? String(value);
   if (field === "status") return quoteStatusLabel[String(value)] ?? String(value);
+  if (field === "channel") return channelLabel[String(value)] ?? String(value);
+  if (field === "service_type" || field === "type")
+    return serviceTypeLabel[String(value)] ?? String(value);
   return String(value);
 }
 
