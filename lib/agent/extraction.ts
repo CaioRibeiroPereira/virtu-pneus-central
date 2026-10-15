@@ -46,6 +46,13 @@ export function extractionJsonSchema(): Record<string, unknown> {
   return simplifyForLlm(schema) as Record<string, unknown>;
 }
 
+/** JSON Schema de UM evento (extração focada, D52): o mesmo contrato, só o tipo pedido. */
+export function itemJsonSchema(type: EventType): Record<string, unknown> {
+  const schema = z.toJSONSchema(llmItem(type)) as Record<string, unknown>;
+  delete schema.$schema;
+  return simplifyForLlm(schema) as Record<string, unknown>;
+}
+
 /**
  * Remove "pattern" e "format" (ex.: a regex de e-mail): atrapalham a gramática que o Ollama usa
  * para forçar o formato e não ajudam o modelo. A validação completa acontece depois (postProcess

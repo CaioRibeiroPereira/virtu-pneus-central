@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { routeOf, scoreExtraction } from "@/lib/agent/evaluation";
-import type { AgentEvent } from "@/lib/agent/schema";
+import { eventDataSchemas, type AgentEvent } from "@/lib/agent/schema";
+import { resolvePlaceholders } from "@/lib/simulator/presets";
+import validation from "@/scripts/avaliacao/conversas-validacao.json";
 
 const envelope = {
   schema_version: "1.0" as const,
@@ -65,5 +67,16 @@ describe("scoreExtraction", () => {
     expect(score.extraApplied).toEqual(["interaction.logged"]); // 0,9 e baixo risco: entraria direto
     expect(score.fields.find((f) => f.field === "total")?.ok).toBe(false);
     expect(score.routes[0]).toMatchObject({ expected: "aplica", got: "revisão", ok: false });
+  });
+});
+
+describe("conversas de validação (fora do simulador)", () => {
+  it.each(validation.map((c) => [c.id, c]))("%s: gabarito válido pelo contrato", (_id, conv) => {
+    const now = new Date("2026-10-14T13:00:00Z");
+    for (const e of conv.events) {
+      const schema = eventDataSchemas[e.type as keyof typeof eventDataSchemas];
+      const parsed = schema.safeParse(resolvePlaceholders(e.data, "2026-10-14", now));
+      expect(parsed.success, `${e.type}: ${JSON.stringify(parsed.error?.issues)}`).toBe(true);
+    }
   });
 });

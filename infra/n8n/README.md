@@ -6,8 +6,8 @@ cada um ao endpoint `POST /api/agent-events` do sistema. O **provedor é escolhi
 
 | Provedor | Quando usar | Custo | Dados |
 |---|---|---|---|
-| **Gemini** (`gemini-3.5-flash`) | demonstração, melhor qualidade (97% no banco de testes) | plano gratuito (com limite) | saem para o Google — **só dados fictícios** |
-| **Ollama** (`llama3.2:3b`, local) | dados reais (LGPD); acerta menos (62%), mas o que erra vai para a revisão | só o computador da loja | **não saem da máquina** |
+| **Gemini** (`gemini-3.5-flash`) | demonstração, melhor qualidade (90–98% no banco de testes) | plano gratuito (com limite) | saem para o Google — **só dados fictícios** |
+| **Ollama** (`llama3.2:3b`, local) | dados reais (LGPD); acerta menos (61%), mas o que erra vai para a revisão | só o computador da loja | **não saem da máquina** |
 
 ```mermaid
 flowchart LR

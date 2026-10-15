@@ -91,8 +91,8 @@ tipos TypeScript e o JSON Schema pedido à IA saem do mesmo zod).
 
 | | Gemini (`gemini-3.5-flash`) | Ollama (`llama3.2:3b`, local) |
 |---|---|---|
-| Acerto no banco de testes | **97%** | **62%** |
-| Entraria no cadastro sem o gestor ver | 2 (1 contato provisório indevido) | **0** |
+| Acerto no banco de testes (13 conversas, 2 conjuntos) | **90–98%** (varia entre rodadas) | **61%** (estável) |
+| Entraria no cadastro sem o gestor ver | 0–2 | **0** |
 | Tempo por conversa (mediana) | ~3 s | ~9 s (até 45 s na conversa mais longa) |
 | Dados | saem para o Google — **só fictícios** | ficam no computador da loja (LGPD) |
 | Custo | plano gratuito, com limite e instabilidade | grátis; ~2 GB de disco, roda na CPU |
@@ -107,6 +107,11 @@ O provedor é escolhido no workflow do n8n (`provider` na conversa ou `VITO_PROV
 - O **Gemini** acerta quase tudo e é rápido: é o provedor da demonstração.
 - Os modelos locais erram mais, mas **erram para o lado seguro**: faltam eventos ou a confiança cai,
   e o item vai para a Revisão. O custo é mais trabalho para o gestor, não dado errado no cadastro.
+- **Tentativas de melhorar o local** (D52), medidas também num conjunto de validação escrito antes
+  dos ajustes: extração focada por tipo, dicas achadas por código, verificação por IA e outros
+  modelos (`gemma3:4b`, `qwen3:4b`). Nenhuma melhorou acerto e segurança juntos; o que funcionou foi
+  código determinístico — o **lastro por origem** (D53): nome, e-mail e cidade só valem se o
+  *cliente* disse, e o valor do orçamento só se a *loja* disse. Isso zerou os indevidos do local.
 - **Maior não foi melhor:** o `qwen2.5:7b` (48%) inventou valores com confiança alta e levou de
   9 a 75 s. Foi esse teste que mostrou a necessidade do **lastro** no pós-processamento (D48):
   placa, medida, cidade, horário etc. só passam se estiverem na conversa.

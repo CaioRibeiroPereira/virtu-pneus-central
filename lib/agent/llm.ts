@@ -112,7 +112,7 @@ async function callGeminiOnce(
 
 export async function callOllama(
   call: LlmCall,
-  opts: { baseUrl: string; model: string; timeoutMs?: number },
+  opts: { baseUrl: string; model: string; timeoutMs?: number; think?: boolean },
 ): Promise<LlmResult> {
   const started = Date.now();
   const res = await fetch(`${opts.baseUrl.replace(/\/$/, "")}/api/chat`, {
@@ -120,6 +120,8 @@ export async function callOllama(
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       model: opts.model,
+      // Modelos que "pensam" antes de responder (ex.: qwen3) ficam muito mais lentos na CPU.
+      ...(opts.think !== undefined ? { think: opts.think } : {}),
       messages: [
         { role: "system", content: call.system },
         { role: "user", content: call.user },

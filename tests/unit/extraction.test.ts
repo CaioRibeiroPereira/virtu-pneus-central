@@ -82,7 +82,7 @@ describe("postProcess", () => {
     expect(out.events[0].confidence).toBe(0.5);
     expect(out.adjustments[0].reasons).toEqual([
       "evidência não encontrada na conversa",
-      "valor não aparece na conversa",
+      "valor não foi dito pela loja",
     ]);
   });
 
@@ -138,9 +138,48 @@ describe("postProcess", () => {
       civic,
       meta,
     );
-    expect(out.events.map((e) => e.data)).toEqual([{ name: "Ricardo" }, { model: "Civic" }]);
-    expect(out.adjustments.map((a) => a.removed)).toEqual([["city"], ["tire_size"]]);
-    expect(out.rejected).toEqual([{ index: 2, issues: ["nada da conversa sustenta: plate"] }]);
+    // "Ricardo" só aparece no cumprimento da LOJA: não é o cliente se apresentando (D53).
+    expect(out.events.map((e) => e.data)).toEqual([{ model: "Civic" }]);
+    expect(out.adjustments.map((a) => a.removed)).toEqual([["tire_size"]]);
+    expect(out.rejected).toEqual([
+      { index: 0, issues: ["nada da conversa sustenta: name, city"] },
+      { index: 2, issues: ["nada da conversa sustenta: plate"] },
+    ]);
+  });
+
+  it("dado pessoal só vale se o CLIENTE disse; valor de orçamento, se a LOJA disse", () => {
+    const talk = [
+      { from: "cliente", text: "Aqui é a Joana, de Hortolândia. Paguei R$ 500 em outro lugar." },
+      { from: "vito", text: "Oi, Joana! Aqui fica R$ 450,00." },
+    ];
+    const out = postProcess(
+      {
+        events: [
+          {
+            type: "customer.upserted",
+            confidence: 0.9,
+            evidence: "Aqui é a Joana, de Hortolândia.",
+            data: { name: "Joana", city: "Hortolândia" },
+          },
+          {
+            type: "quote.created",
+            confidence: 0.9,
+            evidence: "Aqui fica R$ 450,00.",
+            data: { description: "Pneus", total: 450 },
+          },
+          {
+            type: "quote.created",
+            confidence: 0.9,
+            evidence: "Paguei R$ 500 em outro lugar.",
+            data: { description: "Pneus", total: 500 },
+          },
+        ],
+      },
+      talk,
+      meta,
+    );
+    expect(out.events[0].data).toEqual({ name: "Joana", city: "Hortolândia" });
+    expect(out.events.slice(1).map((e) => e.confidence)).toEqual([0.9, 0.5]); // 500 foi o cliente
   });
 
   it("aceita placa e medida escritas de outro jeito, e nome parcial", () => {

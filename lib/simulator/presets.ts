@@ -37,15 +37,29 @@ export function nextSaturday(today: DateOnly): DateOnly {
   return addDays(today, (6 - weekday + 7) % 7 || 7);
 }
 
-/** Troca os marcadores de data dos arquivos ($TODAY, $TODAY+N, $NOW, $NEXT_SATURDAY@HH:MM). */
+/** Próximo dia da semana `weekday` (0 = domingo … 6 = sábado) depois de `today` (nunca o próprio dia). */
+export function nextWeekday(today: DateOnly, weekday: number): DateOnly {
+  const [y, m, d] = today.split("-").map(Number);
+  const current = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  return addDays(today, (weekday - current + 7) % 7 || 7);
+}
+
+/**
+ * Troca os marcadores de data dos arquivos: $TODAY, $TODAY+N, $NOW, $TODAY+N@HH:MM,
+ * $NEXT_SATURDAY@HH:MM e $NEXT_DOW:N@HH:MM (N = dia da semana, 0 = domingo).
+ */
 export function resolvePlaceholders(value: unknown, today: DateOnly, now: Date): unknown {
   if (typeof value === "string") {
     if (value === "$TODAY") return today;
     if (value === "$NOW") return now.toISOString();
     const plus = value.match(/^\$TODAY\+(\d+)$/);
     if (plus) return addDays(today, Number(plus[1]));
+    const plusAt = value.match(/^\$TODAY\+(\d+)@(\d{2}:\d{2})$/);
+    if (plusAt) return storeTimeToUtc(addDays(today, Number(plusAt[1])), plusAt[2]).toISOString();
     const sat = value.match(/^\$NEXT_SATURDAY@(\d{2}:\d{2})$/);
     if (sat) return storeTimeToUtc(nextSaturday(today), sat[1]).toISOString();
+    const dow = value.match(/^\$NEXT_DOW:([0-6])@(\d{2}:\d{2})$/);
+    if (dow) return storeTimeToUtc(nextWeekday(today, Number(dow[1])), dow[2]).toISOString();
     return value;
   }
   if (Array.isArray(value)) return value.map((v) => resolvePlaceholders(v, today, now));

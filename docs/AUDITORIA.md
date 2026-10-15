@@ -555,3 +555,48 @@ Login feito com o Playwright; o cookie de sessão foi passado por `--extra-heade
 | E2E na produção | `E2E_BASE_URL=https://virtu-pneus-central.vercel.app npx playwright test` | 7 passando |
 | Segredos | `git diff --cached` procurando a chave do Gemini, a senha do Neon e o token | nada encontrado (a senha da demo está no README de propósito, §17) |
 | Demo limpa | `npm run db:seed` | dados de teste removidos; seed relativo a hoje |
+
+---
+
+## Etapa 8 — Melhorar o Ollama (15/10/2026)
+
+**Objetivo:** aumentar a qualidade do modelo local sem "decorar" as conversas de teste. Decisões D52 e D53.
+
+### 8.1 Conjunto de validação (antes de qualquer ajuste)
+- `scripts/avaliacao/conversas-validacao.json`: 8 conversas novas, com gabarito validado pelo contrato em `tests/unit/evaluation.test.ts`.
+- Novos marcadores de data: `$TODAY+N@HH:MM` e `$NEXT_DOW:N@HH:MM`.
+- `scripts/avaliar-extracao.ts` passou a separar os resultados por conjunto (`--conjunto`) e por estratégia (`--modos`).
+
+### 8.2 Estratégias testadas (todas com testes de unidade)
+- `lib/agent/hints.ts`: placas, medidas, valores e horários achados por código.
+- `lib/agent/focused.ts`: classificação + um pedido por tipo.
+- `lib/agent/verify.ts`: verificação sim/não por evento.
+- `lib/agent/strategies.ts`: escolhe a estratégia.
+- `lib/agent/prompt.ts`: dividido em partes, com teste de que o prompt direto continua idêntico byte a byte.
+- Modelos: `gemma3:4b` e `qwen3:4b` (com `think: false`).
+
+```bash
+npx tsx --env-file=.env.local scripts/avaliar-extracao.ts --provedor ollama --modelos-ollama llama3.2:3b \
+  --modos direto,direto+dicas,focado,focado+dicas
+npx tsx --env-file=.env.local scripts/avaliar-extracao.ts --provedor ollama --modelos-ollama llama3.2:3b \
+  --modos direto+verif,direto+dicas+verif
+npx tsx --env-file=.env.local scripts/avaliar-extracao.ts --provedor ollama --modelos-ollama gemma3:4b,qwen3:4b \
+  --modos direto,direto+dicas
+```
+
+Resultado: nenhuma estratégia melhorou acerto e segurança juntos (tabela na D52). Cuidado registrado: um exemplo tirado de um erro do conjunto de validação foi escrito no prompt de verificação e retirado antes de medir.
+
+### 8.3 Lastro por origem (D53)
+- `refine.ts`: nome, e-mail e cidade só valem se vierem de mensagem do cliente; o valor do orçamento, só se vier da loja.
+- Indevidos do `llama3.2:3b`: 1 → 0.
+
+### 8.4 Avaliação oficial e n8n
+```bash
+npx tsx --env-file=.env.local scripts/avaliar-extracao.ts --provedor ambos --modelos-ollama llama3.2:3b \
+  --modos direto,direto+dicas --salvar          # → docs/AVALIACAO_IA.md
+npx tsx scripts/gerar-workflow-n8n.ts           # workflow com o refine novo; reimportado e publicado
+```
+- Gemini (reserva `flash-lite`): 90–97% na rodada oficial; 98% na validação na rodada anterior. A variação entre rodadas fica entre 90% e 98%.
+- `llama3.2:3b` direto: 61% com 0 indevidos nas duas rodadas.
+- n8n com Ollama: 3 eventos simultâneos, todos 201.
+- Depois: `npm run db:seed` para limpar a demo.

@@ -3,6 +3,7 @@
 // o zod depende (D50). No n8n a validação completa fica com o endpoint, que recebe um evento por vez.
 import { normalizeText } from "@/lib/search";
 import { EXTRACTION_PROMPT_VERSION, type ConversationMessage } from "./prompt";
+import { hourMentions } from "./hints";
 
 /** Tipos de evento do contrato (§8.2). Um teste garante que batem com lib/agent/schema.ts. */
 export const EVENT_TYPES = [
@@ -58,12 +59,25 @@ function moneyMentions(text: string): Set<number> {
 const compact = (v: string) => normalizeText(v).replace(/[^a-z0-9@.]/g, "");
 const words = (v: string) => normalizeText(v).match(/[a-z0-9]{3,}/g) ?? [];
 
+/** "exato": o valor inteiro aparece; "palavra": ao menos uma palavra aparece. */
 type Grounding = "exato" | "palavra";
+/** Quem precisa ter dito: dado pessoal vem do CLIENTE (o nome usado pela loja no cumprimento,
+ *  "Perfeito, Gustavo!", não é o cliente se apresentando — regra do prompt, garantida aqui). */
+type Source = "cliente" | "qualquer";
 /** Campos copiáveis da conversa. Textos livres (descrição, resumo, motivo) ficam de fora. */
-const GROUNDED: Partial<Record<EventType, Record<string, Grounding>>> = {
-  "customer.upserted": { name: "palavra", email: "exato", city: "palavra" },
-  "vehicle.identified": { plate: "exato", model: "palavra", tire_size: "exato", year: "exato" },
-  "quote.created": { tire_size: "exato", vehicle_plate: "exato" },
+const GROUNDED: Partial<Record<EventType, Record<string, [Grounding, Source]>>> = {
+  "customer.upserted": {
+    name: ["palavra", "cliente"],
+    email: ["exato", "cliente"],
+    city: ["palavra", "cliente"],
+  },
+  "vehicle.identified": {
+    plate: ["exato", "qualquer"],
+    model: ["palavra", "qualquer"],
+    tire_size: ["exato", "qualquer"],
+    year: ["exato", "qualquer"],
+  },
+  "quote.created": { tire_size: ["exato", "qualquer"], vehicle_plate: ["exato", "qualquer"] },
 };
 /** Sem estes campos o evento não diz nada (ex.: só "origin"). */
 const NEEDS_ONE_OF: Partial<Record<EventType, string[]>> = {
@@ -73,16 +87,6 @@ const NEEDS_ONE_OF: Partial<Record<EventType, string[]>> = {
 
 const WEEKDAY_WORDS = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
 const STORE_TZ = "America/Sao_Paulo";
-
-/** Horas citadas na conversa: "9h", "9:30", "às 14 horas", "meio-dia". */
-function hourMentions(normalized: string): Set<number> {
-  const hours = new Set<number>();
-  for (const m of normalized.matchAll(/\b(\d{1,2})\s*(?:h\b|h\d{2}|:\d{2}|horas?\b)/g)) {
-    hours.add(Number(m[1]));
-  }
-  if (normalized.includes("meio-dia") || normalized.includes("meio dia")) hours.add(12);
-  return hours;
-}
 
 function storeParts(instant: string): { hour: number; weekday: number } {
   const date = new Date(instant);
@@ -99,10 +103,10 @@ function storeParts(instant: string): { hour: number; weekday: number } {
 
 /**
  * Exige lastro, recalcula a confiança e monta o envelope (§8.1) de cada item já validado:
- *  - placa, medida, e-mail, ano, nome, cidade e modelo só ficam se aparecerem na conversa
- *    (senão o campo é descartado; evento que fica vazio é rejeitado);
+ *  - placa, medida, ano e modelo só ficam se aparecerem na conversa; nome, e-mail e cidade, só
+ *    se aparecerem em mensagem do CLIENTE (senão o campo é descartado; evento vazio é rejeitado);
  *  - trecho de evidência que não está na conversa → no máximo 0,5 (possível invenção);
- *  - valor de orçamento que não aparece na conversa → no máximo 0,5;
+ *  - valor de orçamento que a LOJA não disse → no máximo 0,5;
  *  - agendamento sem a hora ou com dia da semana diferente do citado → no máximo 0,5;
  *  - agendamento no passado → no máximo 0,4.
  */
@@ -119,9 +123,16 @@ export function refineItems(
   const adjustments: Adjustment[] = [];
   const fullText = conversation.map((m) => m.text).join("\n");
   const normalizedText = normalizeText(fullText).replace(/[“”"]/g, "");
-  const compactText = compact(fullText);
-  const textWords = new Set(words(fullText));
-  const mentions = moneyMentions(fullText);
+  const textFrom = (client: boolean) =>
+    conversation
+      .filter((m) => (m.from === "cliente") === client)
+      .map((m) => m.text)
+      .join("\n");
+  const clientText = textFrom(true);
+  const storeText = textFrom(false);
+  const compactBy = { qualquer: compact(fullText), cliente: compact(clientText) };
+  const wordsBy = { qualquer: new Set(words(fullText)), cliente: new Set(words(clientText)) };
+  const storeMentions = moneyMentions(storeText);
   const hours = hourMentions(normalizedText);
   const weekdays = WEEKDAY_WORDS.flatMap((w, i) => (normalizedText.includes(w) ? [i] : []));
 
@@ -131,13 +142,13 @@ export function refineItems(
     const rules = GROUNDED[item.type] ?? {};
     const data: Record<string, unknown> = { ...item.data };
     const removed: string[] = [];
-    for (const [field, mode] of Object.entries(rules)) {
+    for (const [field, [mode, source]] of Object.entries(rules)) {
       const value = data[field];
       if (value === undefined) continue;
       const ok =
         mode === "exato"
-          ? !!compact(String(value)) && compactText.includes(compact(String(value)))
-          : words(String(value)).some((w) => textWords.has(w));
+          ? !!compact(String(value)) && compactBy[source].includes(compact(String(value)))
+          : words(String(value)).some((w) => wordsBy[source].has(w));
       if (!ok) {
         delete data[field];
         removed.push(field);
@@ -163,9 +174,9 @@ export function refineItems(
       confidence = Math.min(confidence, 0.5);
       reasons.push("evidência não encontrada na conversa");
     }
-    if (item.type === "quote.created" && !mentions.has(Number(item.data.total))) {
+    if (item.type === "quote.created" && !storeMentions.has(Number(item.data.total))) {
       confidence = Math.min(confidence, 0.5);
-      reasons.push("valor não aparece na conversa");
+      reasons.push("valor não foi dito pela loja");
     }
     if (
       item.type === "appointment.requested" &&

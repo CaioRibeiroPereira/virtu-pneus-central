@@ -63,17 +63,19 @@ Detalhes em [`docs/AGENTES_IA.md`](docs/AGENTES_IA.md). Resumo:
   contrato zod) e mesmo pós-processamento — que **exige lastro** (placa, medida, cidade, horário… só
   ficam se aparecem na conversa) e recalcula a confiança.
 - Banco de testes com 5 conversas fictícias ([`docs/AVALIACAO_IA.md`](docs/AVALIACAO_IA.md)):
-  **Gemini 97%** em ~3 s; melhor modelo local **`llama3.2:3b` 62%** em ~9 s, com **nenhum** evento
-  entrando no cadastro sem o gestor ver. O `qwen2.5:7b` foi pior (48%) e inventou valores, o que
+  **Gemini 90–98%** em ~2 s; melhor modelo local **`llama3.2:3b` 61%** em ~8 s, com **nenhum** evento
+  entrando no cadastro sem o gestor ver. Medido em 13 conversas: as 5 do simulador e 8 de
+  validação escritas antes de ajustar o modelo local (o Gemini fez 98% nelas — o prompt generaliza). O `qwen2.5:7b` foi pior (48%) e inventou valores, o que
   levou à regra de lastro (D48).
 - Testado de ponta a ponta no n8n 2.43 (Docker) com os dois provedores: os eventos chegam ao
   sistema e são aplicados ([`infra/n8n/README.md`](infra/n8n/README.md)).
-- O teste mudou o projeto: prompt v2 (D45), lastro (D48) e escolha do modelo local (D49) vieram de
-  erros medidos, não de suposição.
+- O teste mudou o projeto: prompt v2 (D45), lastro (D48), escolha do modelo local (D49) e lastro por
+  origem (D53) vieram de erros medidos, não de suposição. Também mostrou o que **não** funciona: a
+  extração focada, as dicas e a verificação por IA foram medidas e descartadas para o modelo local (D52).
 
 ## Principais decisões
 
-Todas em [`DECISOES.md`](DECISOES.md) (D1–D51), com contexto, opções e motivo. As que mais pesaram:
+Todas em [`DECISOES.md`](DECISOES.md) (D1–D53), com contexto, opções e motivo. As que mais pesaram:
 
 - **D2 — Next.js + Vercel + Neon + Drizzle:** o vinext do original é beta e o limite de 10 ms de
   CPU do Workers gratuito é risco para renderizar no servidor; Next usa a mesma estrutura `app/`,

@@ -259,3 +259,29 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
 **D51 — Cliente provisório criado por eventos simultâneos** (15/10)
 - Contexto: encontrado no teste ponta a ponta. O n8n enviou 3 eventos da mesma conversa ao mesmo tempo, e as 3 transações tentaram criar o mesmo cliente provisório. O índice único do telefone barrou a duplicata (os dados ficaram certos), mas 2 eventos voltaram com 500.
 - Escolha: `INSERT ... ON CONFLICT (phone_e164) DO NOTHING`; se outra transação criou o cliente, o evento é relido e aplicado a ele. Verificado com 5 eventos simultâneos no Postgres do Neon: todos 201, um só cliente. Teste automático em `tests/integration/agent-race.test.ts`: como o PGlite usa uma única conexão, a corrida é reproduzida por um trigger que insere o mesmo telefone entre a busca e a inserção. O teste dá 500 com o código antigo e 201 com a correção.
+
+## Decisões da melhoria do Ollama (15/10)
+
+**D52 — Melhorar o modelo local: o que foi testado e o que ficou**
+- Contexto: o Ollama (`llama3.2:3b`) acertava 62% contra 97% do Gemini. Com só 5 conversas de teste, qualquer ajuste corria o risco de "decorar a prova".
+- Primeiro passo: um **conjunto de validação** com 8 conversas novas (`scripts/avaliacao/conversas-validacao.json`), escrito **antes** de qualquer ajuste. Ele cobre casos que o simulador não cobre: recusa, serviço concluído, e-mail e cidade, "amanhã às 14h", preço por unidade, falta de estoque, "terça às 10h". Os erros vistos nesse conjunto não foram usados para escolher exemplos nem regras. Quando escorreguei nisso (um exemplo no prompt de verificação), o exemplo foi retirado.
+- Resultados do `llama3.2:3b` nos 13 casos (acerto / eventos que entrariam sem revisão):
+
+  | Estratégia | Acerto | Indevidos | Resultado |
+  |---|---|---|---|
+  | Direto (antes) | 61% | 1 | — |
+  | Direto + dicas por código (placas, medidas, R$, horários) | 66% | 5 | mais acerto, menos seguro |
+  | Focado: classifica, depois extrai tipo a tipo | 49% | 3 | pior e 2× mais lento |
+  | Focado + dicas | 56% | 4 | pior |
+  | Direto + dicas + verificação por IA (sim/não por evento) | 56% | 0 | seguro, mas o verificador de 3B reprova até evento certo ("placa não foi mencionada" para um evento sem placa) |
+  | `gemma3:4b` (direto) | 61% | 11 | descartado |
+  | `qwen3:4b` sem "pensar" (direto) | 23% | 2 | responde lista vazia na maioria; pensando, fica lento demais na CPU |
+- Confirmação: na rodada oficial (`docs/AVALIACAO_IA.md`), o ganho das dicas não se repetiu (61% nos dois modos, e 3 indevidos com dicas). Diferenças de até ~10 pontos entre rodadas são ruído com 13 conversas; o Gemini reserva oscilou entre 90% e 98% na mesma configuração.
+- Escolha: continua o **direto**, agora com a regra de origem da D53 (61%, **0 indevidos** nas duas rodadas). As outras estratégias ficam no banco de testes (`--modos`), com testes de unidade, para medir de novo num computador com placa de vídeo.
+- Motivo: neste notebook (CPU, 16 GB), mexer no prompt ou na estratégia troca acerto por segurança, mas não melhora os dois ao mesmo tempo. O teto é o tamanho do modelo. O ganho real e seguro veio de código determinístico (D53).
+- Limitação conhecida: o modelo local ainda lê "trocamos os pneus, ficou R$ 760" como orçamento, e não como serviço feito. O caso vem do conjunto de validação e por isso não foi corrigido no prompt.
+
+**D53 — Lastro por origem: quem disse o quê**
+- Contexto: os indevidos restantes eram, quase todos, o nome que a **loja** usou no cumprimento ("Perfeito, Gustavo!", "seu Antônio") virando cadastro. O prompt já proibia isso; modelo pequeno ignora, e o Gemini às vezes também.
+- Escolha: em `refine.ts`, nome, e-mail e cidade só valem se aparecerem em mensagem do **cliente**; o valor de um orçamento só passa com confiança alta se a **loja** o disse. Placa, medida, ano e modelo continuam valendo de qualquer lado.
+- Efeito: indevidos do `llama3.2:3b` 1 → 0 (direto) e 5 → 3 (com dicas), sem perder acerto. No Gemini: 97% no simulador e **98% na validação**, sinal de que o prompt generaliza.

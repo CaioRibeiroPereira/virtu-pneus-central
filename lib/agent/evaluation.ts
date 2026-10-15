@@ -43,7 +43,11 @@ const sameInstant = (a: unknown, b: unknown) =>
 
 /** Campos que importam para o gestor em cada tipo (texto livre, como resumos, fica de fora). */
 const KEY_FIELDS: Record<string, Record<string, (e: unknown, g: unknown) => boolean>> = {
-  "customer.upserted": { name: sameName },
+  "customer.upserted": {
+    name: sameName,
+    email: (e, g) => compact(e) === compact(g),
+    city: sameName,
+  },
   "vehicle.identified": {
     plate: (e, g) => compact(e) === compact(g),
     year: (e, g) => e === g,

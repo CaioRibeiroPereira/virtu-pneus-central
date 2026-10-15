@@ -1,0 +1,177 @@
+[
+  {
+    "id": "val-recusa",
+    "title": "Cliente recusa orçamento com outras palavras",
+    "phone": "(19) 90000-0101",
+    "messages": [
+      {
+        "from": "cliente",
+        "text": "Oi Vito, sobre aquele orçamento do alinhamento e dos 2 pneus: ficou acima do que eu posso agora, vou deixar pra outra hora."
+      },
+      { "from": "vito", "text": "Sem problema, Helena! Se mudar de ideia é só chamar." }
+    ],
+    "events": [
+      { "type": "quote.status_changed", "confidence": 0.85, "data": { "status": "recusado" } }
+    ]
+  },
+  {
+    "id": "val-servico-feito",
+    "title": "Loja avisa que o serviço foi concluído",
+    "phone": "(19) 90000-0102",
+    "messages": [
+      {
+        "from": "vito",
+        "text": "Prontinho, seu Antônio! Trocamos os 2 pneus dianteiros, ficou R$ 760,00. Anotei a quilometragem: 48.200 km."
+      },
+      { "from": "cliente", "text": "Valeu, já tô passando aí pra buscar." }
+    ],
+    "events": [
+      {
+        "type": "service.completed",
+        "confidence": 0.9,
+        "data": {
+          "type": "troca_pneus",
+          "description": "Troca dos 2 pneus dianteiros",
+          "performed_at": "$NOW",
+          "total": 760,
+          "km": 48200
+        }
+      }
+    ]
+  },
+  {
+    "id": "val-email-cidade",
+    "title": "Cliente informa cidade e e-mail e pergunta preço",
+    "phone": "(19) 90000-0103",
+    "messages": [
+      {
+        "from": "cliente",
+        "text": "Boa tarde! Sou a Carla, moro em Valinhos. Quanto custa o rodízio dos pneus?"
+      },
+      { "from": "vito", "text": "Oi, Carla! O rodízio sai R$ 60,00." },
+      {
+        "from": "cliente",
+        "text": "Ótimo. Me manda os horários no e-mail carla.mendes@exemplo.com"
+      }
+    ],
+    "events": [
+      {
+        "type": "customer.upserted",
+        "confidence": 0.92,
+        "data": { "name": "Carla", "email": "carla.mendes@exemplo.com", "city": "Valinhos" }
+      },
+      {
+        "type": "quote.created",
+        "confidence": 0.9,
+        "data": { "description": "Rodízio dos pneus", "total": 60 }
+      }
+    ]
+  },
+  {
+    "id": "val-amanha-14h",
+    "title": "Agendamento para amanhã à tarde",
+    "phone": "(19) 90000-0104",
+    "messages": [
+      { "from": "cliente", "text": "Consigo fazer o balanceamento amanhã às 14h?" },
+      { "from": "vito", "text": "Consegue sim, Rafael. Amanhã às 14h está marcado." }
+    ],
+    "events": [
+      {
+        "type": "appointment.requested",
+        "confidence": 0.94,
+        "data": { "scheduled_at": "$TODAY+1@14:00", "service_type": "balanceamento" }
+      }
+    ]
+  },
+  {
+    "id": "val-veiculo-preco-unidade",
+    "title": "Carro completo e preço por unidade e total",
+    "phone": "(19) 90000-0105",
+    "messages": [
+      {
+        "from": "cliente",
+        "text": "Meu carro é um Corolla 2018, placa FRT4B56, pneu 215/50 R17. Vocês têm esse?"
+      },
+      {
+        "from": "vito",
+        "text": "Temos sim! O Michelin sai R$ 1.120 cada, R$ 4.480 os quatro já com montagem."
+      }
+    ],
+    "events": [
+      {
+        "type": "vehicle.identified",
+        "confidence": 0.93,
+        "data": { "plate": "FRT4B56", "model": "Corolla", "year": 2018, "tire_size": "215/50 R17" }
+      },
+      {
+        "type": "quote.created",
+        "confidence": 0.85,
+        "data": {
+          "description": "4 pneus Michelin 215/50 R17 com montagem",
+          "total": 4480,
+          "quantity": 4
+        }
+      }
+    ]
+  },
+  {
+    "id": "val-sem-estoque",
+    "title": "Sem estoque; a loja promete retornar amanhã",
+    "phone": "(19) 90000-0106",
+    "messages": [
+      { "from": "cliente", "text": "Vocês têm pneu 175/70 R14 da Pirelli?" },
+      {
+        "from": "vito",
+        "text": "No momento não, Bruna. Vou verificar com o fornecedor e te retorno amanhã."
+      }
+    ],
+    "events": [
+      {
+        "type": "vehicle.identified",
+        "confidence": 0.85,
+        "data": { "tire_size": "175/70 R14" }
+      },
+      {
+        "type": "task.suggested",
+        "confidence": 0.88,
+        "data": {
+          "type": "outro",
+          "title": "Retornar sobre pneu 175/70 R14",
+          "reason": "Verificar com o fornecedor",
+          "due_date": "$TODAY+1"
+        }
+      }
+    ]
+  },
+  {
+    "id": "val-aprova",
+    "title": "Cliente aprova com outras palavras",
+    "phone": "(19) 90000-0107",
+    "messages": [
+      {
+        "from": "cliente",
+        "text": "Pode fazer a troca das pastilhas e dos pneus sim, fechado no valor que você passou."
+      },
+      { "from": "vito", "text": "Perfeito, Gustavo! Já separo as peças." }
+    ],
+    "events": [
+      { "type": "quote.status_changed", "confidence": 0.9, "data": { "status": "aprovado" } }
+    ]
+  },
+  {
+    "id": "val-terca-10h",
+    "title": "Agendamento em dia da semana",
+    "phone": "(19) 90000-0108",
+    "messages": [
+      { "from": "cliente", "text": "Queria fazer o rodízio. Terça às 10h tem horário?" },
+      { "from": "vito", "text": "Tem sim! Terça às 10h fica reservado pra você, Diego." }
+    ],
+    "events": [
+      {
+        "type": "appointment.requested",
+        "confidence": 0.94,
+        "data": { "scheduled_at": "$NEXT_DOW:2@10:00", "service_type": "rodizio" }
+      }
+    ]
+  }
+]

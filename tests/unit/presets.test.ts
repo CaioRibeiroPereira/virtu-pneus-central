@@ -3,6 +3,7 @@ import { agentEventSchema } from "@/lib/agent/schema";
 import {
   buildPresetEvents,
   nextSaturday,
+  nextWeekday,
   PRESETS,
   resolvePlaceholders,
 } from "@/lib/simulator/presets";
@@ -45,5 +46,12 @@ describe("datas relativas", () => {
         now,
       ),
     ).toEqual({ a: "2026-10-14", b: "2026-10-17", c: ["2026-10-17T12:00:00.000Z"], d: "texto" });
+  });
+
+  it("resolve 'amanhã às 14h' e 'próxima terça às 10h' no horário da loja", () => {
+    const now = new Date("2026-10-14T13:00:00Z");
+    expect(resolvePlaceholders("$TODAY+1@14:00", TODAY, now)).toBe("2026-10-15T17:00:00.000Z");
+    expect(resolvePlaceholders("$NEXT_DOW:2@10:00", TODAY, now)).toBe("2026-10-20T13:00:00.000Z");
+    expect(nextWeekday("2026-10-14", 3)).toBe("2026-10-21"); // quarta → quarta seguinte
   });
 });
