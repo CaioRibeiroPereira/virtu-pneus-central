@@ -1,0 +1,13 @@
+{
+  "id": "aprova-orcamento",
+  "title": "Cliente aprova orçamento enviado há dias",
+  "expected": "Aprovação mexe com dinheiro: vai para a fila de revisão mesmo com confiança alta.",
+  "phone": "(19) 90000-0001",
+  "messages": [
+    { "from": "cliente", "text": "Bom dia! Pode fechar aquele orçamento dos 4 pneus do Civic. Passo aí na segunda." },
+    { "from": "vito", "text": "Ótimo, Ricardo! Vou avisar a equipe para reservar os pneus." }
+  ],
+  "events": [
+    { "type": "quote.status_changed", "confidence": 0.95, "evidence": "Pode fechar aquele orçamento dos 4 pneus do Civic.", "customer": { "phone": "(19) 90000-0001" }, "data": { "status": "aprovado" } }
+  ]
+}

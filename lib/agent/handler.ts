@@ -66,7 +66,12 @@ export async function handleAgentEvent(
       case "applied":
         return {
           status: 201,
-          body: { status: "applied", event_id: outcome.eventId, applied: outcome.applied },
+          body: {
+            status: "applied",
+            event_id: outcome.eventId,
+            customer_id: outcome.customerId,
+            applied: outcome.applied,
+          },
         };
       case "queued_for_review":
         return {
