@@ -503,7 +503,12 @@ export function buildSeed(today: DateOnly): SeedData {
     id: randomUUID(),
     agentEventId: approvalEvent,
     reason: "alto_impacto",
-    proposed: { entity: "quote", id: fernandaQuote, changes: { status: "aprovado" } },
+    proposed: {
+      type: "quote.status_changed",
+      data: { status: "aprovado", quote_id: fernandaQuote },
+      customerId: fernanda.id,
+      quoteId: fernandaQuote,
+    },
   });
 
   // Baixa confiança e número desconhecido.
@@ -522,9 +527,10 @@ export function buildSeed(today: DateOnly): SeedData {
     agentEventId: unknownEvent,
     reason: "baixa_confianca",
     proposed: {
-      entity: "interaction",
+      type: "interaction.logged",
+      data: { summary: "Perguntou se a loja tem pneus aro 15", channel: "whatsapp" },
       customer: { phone: "(19) 90000-0099" },
-      summary: "Perguntou se a loja tem pneus aro 15",
+      customerId: null,
     },
   });
 
@@ -545,9 +551,10 @@ export function buildSeed(today: DateOnly): SeedData {
     agentEventId: conflictEvent,
     reason: "conflito_edicao_humana",
     proposed: {
-      entity: "customer",
-      id: marcos.id,
-      changes: { city: "Hortolândia" },
+      type: "customer.upserted",
+      data: { city: "Hortolândia" },
+      customerId: marcos.id,
+      conflicts: ["city"],
       current: { city: "Sumaré" },
     },
   });

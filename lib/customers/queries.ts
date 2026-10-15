@@ -126,16 +126,20 @@ export async function getCustomerDetail(db: Db, id: string, today: DateOnly) {
   ]);
 
   const eventIds = eventRows.map((e) => e.id);
-  const pendingReviews = eventIds.length
+  const allReviews = eventIds.length
     ? await db
         .select({
           id: reviewItems.id,
           agentEventId: reviewItems.agentEventId,
           reason: reviewItems.reason,
+          status: reviewItems.status,
+          decidedAt: reviewItems.decidedAt,
+          note: reviewItems.note,
         })
         .from(reviewItems)
-        .where(and(eq(reviewItems.status, "pendente"), inArray(reviewItems.agentEventId, eventIds)))
+        .where(inArray(reviewItems.agentEventId, eventIds))
     : [];
+  const pendingReviews = allReviews.filter((r) => r.status === "pendente");
   const eventById = new Map(eventRows.map((e) => [e.id, e]));
 
   const timeline = buildTimeline({
@@ -155,6 +159,7 @@ export async function getCustomerDetail(db: Db, id: string, today: DateOnly) {
         reason: r.reason,
       };
     }),
+    decidedSuggestions: allReviews.filter((r) => r.status !== "pendente"),
     evidenceByEvent: new Map(eventRows.map((e) => [e.id, e.evidence])),
   });
 

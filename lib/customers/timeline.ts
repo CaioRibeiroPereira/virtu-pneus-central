@@ -70,6 +70,13 @@ export type TimelineInput = {
     evidence: string | null;
     reason: string;
   }[];
+  /** Decisões do gestor na fila de revisão (aprovou, corrigiu ou rejeitou). */
+  decidedSuggestions?: {
+    id: string;
+    status: string;
+    decidedAt: Date | null;
+    note: string | null;
+  }[];
   /** Evidência de cada evento do agente, para mostrar junto do item que ele criou. */
   evidenceByEvent: Map<string, string | null>;
 };
@@ -154,6 +161,23 @@ export function buildTimeline(input: TimelineInput): TimelineItem[] {
       detail: reviewReasonLabel[p.reason] ?? p.reason,
       viaAgent: true,
       evidence: p.evidence,
+    });
+  }
+  for (const d of input.decidedSuggestions ?? []) {
+    if (!d.decidedAt) continue;
+    const verb =
+      d.status === "rejeitado"
+        ? "rejeitada"
+        : d.status === "aprovado_editado"
+          ? "corrigida e aprovada"
+          : "aprovada";
+    items.push({
+      key: `vd-${d.id}`,
+      kind: "vito",
+      at: d.decidedAt,
+      title: `Sugestão do Vito ${verb} por você`,
+      detail: d.note ?? undefined,
+      viaAgent: false,
     });
   }
 
