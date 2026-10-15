@@ -28,6 +28,8 @@ for (const vp of VIEWPORTS) {
         ["/clientes", "02-clientes"],
         ["/clientes/novo", "04-novo-cliente"],
         ["/mais", "06-mais"],
+        ["/revisao", "07-revisao"],
+        ["/simulador", "08-simulador"],
       ];
       for (const [path, shot] of pages) {
         await page.goto(path);

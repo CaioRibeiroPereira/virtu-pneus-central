@@ -74,8 +74,11 @@ h3 {
 p {
   margin: 0;
 }
+/* Links sublinhados: não dependem só da cor para serem reconhecidos (WCAG 1.4.1). */
 a {
   color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
 }
 .tabular {
   font-variant-numeric: tabular-nums;
