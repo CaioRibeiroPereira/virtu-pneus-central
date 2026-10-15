@@ -5,6 +5,12 @@
   "phone": "(19) 90000-0098",
   "messages": [{ "from": "cliente", "text": "vcs tem aro 15?" }],
   "events": [
-    { "type": "interaction.logged", "confidence": 0.41, "evidence": "vcs tem aro 15?", "customer": { "phone": "(19) 90000-0098" }, "data": { "summary": "Perguntou se a loja tem pneus aro 15.", "channel": "whatsapp" } }
+    {
+      "type": "interaction.logged",
+      "confidence": 0.41,
+      "evidence": "vcs tem aro 15?",
+      "customer": { "phone": "(19) 90000-0098" },
+      "data": { "summary": "Perguntou se a loja tem pneus aro 15.", "channel": "whatsapp" }
+    }
   ]
 }

@@ -4,11 +4,37 @@
   "expected": "Registra o atendimento e cria uma ação de pós-venda urgente para hoje.",
   "phone": "(19) 90000-0006",
   "messages": [
-    { "from": "cliente", "text": "Boa tarde. Depois do balanceamento o carro tá fazendo um barulho na frente acima de 80 km/h." },
-    { "from": "vito", "text": "Sinto muito, Paulo! Vou pedir para a equipe te ligar hoje para resolver." }
+    {
+      "from": "cliente",
+      "text": "Boa tarde. Depois do balanceamento o carro tá fazendo um barulho na frente acima de 80 km/h."
+    },
+    {
+      "from": "vito",
+      "text": "Sinto muito, Paulo! Vou pedir para a equipe te ligar hoje para resolver."
+    }
   ],
   "events": [
-    { "type": "interaction.logged", "confidence": 0.92, "evidence": "o carro tá fazendo um barulho na frente acima de 80 km/h", "customer": { "phone": "(19) 90000-0006" }, "data": { "summary": "Reclamou de barulho na dianteira acima de 80 km/h depois do balanceamento.", "channel": "whatsapp" } },
-    { "type": "task.suggested", "confidence": 0.9, "evidence": "Vou pedir para a equipe te ligar hoje", "customer": { "phone": "(19) 90000-0006" }, "data": { "type": "pos_venda", "title": "Ligar sobre barulho após balanceamento", "reason": "Cliente reclamou de barulho na dianteira acima de 80 km/h", "due_date": "$TODAY" } }
+    {
+      "type": "interaction.logged",
+      "confidence": 0.92,
+      "evidence": "o carro tá fazendo um barulho na frente acima de 80 km/h",
+      "customer": { "phone": "(19) 90000-0006" },
+      "data": {
+        "summary": "Reclamou de barulho na dianteira acima de 80 km/h depois do balanceamento.",
+        "channel": "whatsapp"
+      }
+    },
+    {
+      "type": "task.suggested",
+      "confidence": 0.9,
+      "evidence": "Vou pedir para a equipe te ligar hoje",
+      "customer": { "phone": "(19) 90000-0006" },
+      "data": {
+        "type": "pos_venda",
+        "title": "Ligar sobre barulho após balanceamento",
+        "reason": "Cliente reclamou de barulho na dianteira acima de 80 km/h",
+        "due_date": "$TODAY"
+      }
+    }
   ]
 }

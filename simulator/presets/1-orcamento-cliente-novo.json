@@ -4,13 +4,48 @@
   "expected": "Cria cliente provisório, veículo e orçamento (alta confiança, baixo risco).",
   "phone": "(19) 90000-0021",
   "messages": [
-    { "from": "cliente", "text": "Oi! Aqui é a Mariana. Quanto fica 4 pneus 205/55 R16 pro meu Onix 2021? Placa SIM2A21" },
-    { "from": "vito", "text": "Oi, Mariana! Com montagem e balanceamento fica R$ 1.840,00. Te mando a proposta por aqui." },
+    {
+      "from": "cliente",
+      "text": "Oi! Aqui é a Mariana. Quanto fica 4 pneus 205/55 R16 pro meu Onix 2021? Placa SIM2A21"
+    },
+    {
+      "from": "vito",
+      "text": "Oi, Mariana! Com montagem e balanceamento fica R$ 1.840,00. Te mando a proposta por aqui."
+    },
     { "from": "cliente", "text": "Fechado, vou ver e te falo." }
   ],
   "events": [
-    { "type": "customer.upserted", "confidence": 0.93, "evidence": "Aqui é a Mariana.", "customer": { "phone": "(19) 90000-0021", "name": "Mariana Lopes" }, "data": { "name": "Mariana Lopes", "origin": "whatsapp" } },
-    { "type": "vehicle.identified", "confidence": 0.91, "evidence": "meu Onix 2021? Placa SIM2A21", "customer": { "phone": "(19) 90000-0021" }, "data": { "plate": "SIM2A21", "model": "Chevrolet Onix", "year": 2021, "tire_size": "205/55 R16" } },
-    { "type": "quote.created", "confidence": 0.9, "evidence": "Com montagem e balanceamento fica R$ 1.840,00.", "customer": { "phone": "(19) 90000-0021" }, "data": { "description": "4 pneus 205/55 R16 + montagem e balanceamento", "total": 1840, "tire_size": "205/55 R16", "quantity": 4, "vehicle_plate": "SIM2A21" } }
+    {
+      "type": "customer.upserted",
+      "confidence": 0.93,
+      "evidence": "Aqui é a Mariana.",
+      "customer": { "phone": "(19) 90000-0021", "name": "Mariana Lopes" },
+      "data": { "name": "Mariana Lopes", "origin": "whatsapp" }
+    },
+    {
+      "type": "vehicle.identified",
+      "confidence": 0.91,
+      "evidence": "meu Onix 2021? Placa SIM2A21",
+      "customer": { "phone": "(19) 90000-0021" },
+      "data": {
+        "plate": "SIM2A21",
+        "model": "Chevrolet Onix",
+        "year": 2021,
+        "tire_size": "205/55 R16"
+      }
+    },
+    {
+      "type": "quote.created",
+      "confidence": 0.9,
+      "evidence": "Com montagem e balanceamento fica R$ 1.840,00.",
+      "customer": { "phone": "(19) 90000-0021" },
+      "data": {
+        "description": "4 pneus 205/55 R16 + montagem e balanceamento",
+        "total": 1840,
+        "tire_size": "205/55 R16",
+        "quantity": 4,
+        "vehicle_plate": "SIM2A21"
+      }
+    }
   ]
 }

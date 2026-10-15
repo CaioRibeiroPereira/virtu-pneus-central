@@ -12,7 +12,67 @@ export type LlmCall = {
 
 export type LlmResult = { text: string; ms: number; model: string; provider: Provider };
 
+/** 429 (limite) e 5xx (instável) costumam ser passageiros no plano gratuito: tenta de novo. */
+const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Erro passageiro: HTTP 429/5xx ou falha de rede/tempo esgotado (sem status HTTP). */
+function isTransient(error: unknown): boolean {
+  const status = (error as { status?: number }).status;
+  return status ? RETRYABLE.has(status) : true;
+}
+
 export async function callGemini(
+  call: LlmCall,
+  opts: { apiKey: string; model: string; timeoutMs?: number; attempts?: number },
+): Promise<LlmResult & { attempts: number }> {
+  const attempts = opts.attempts ?? 4;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return { ...(await callGeminiOnce(call, opts)), attempts: attempt };
+    } catch (error) {
+      if (attempt >= attempts || !isTransient(error)) throw error;
+      await sleep(2000 * 2 ** (attempt - 1)); // 2 s, 4 s, 8 s
+    }
+  }
+}
+
+/**
+ * Tenta o modelo principal e, se ele seguir indisponível (429/5xx) depois das novas tentativas,
+ * os modelos reserva em ordem. O plano gratuito oscila bastante em horário de pico.
+ */
+export async function callGeminiWithFallback(
+  call: LlmCall,
+  opts: { apiKey: string; models: string[]; attemptsPerModel?: number },
+): Promise<LlmResult & { attempts: number; tried: string[] }> {
+  const tried: string[] = [];
+  let lastError: unknown;
+  for (const model of opts.models) {
+    tried.push(model);
+    try {
+      const result = await callGemini(call, {
+        apiKey: opts.apiKey,
+        model,
+        attempts: opts.attemptsPerModel ?? 2,
+      });
+      return { ...result, tried };
+    } catch (error) {
+      lastError = error;
+      if (!isTransient(error)) throw error; // erro de chave/formato: não adianta trocar de modelo
+    }
+  }
+  throw lastError;
+}
+
+/** Modelos do Gemini a usar, em ordem: GEMINI_MODEL e depois GEMINI_FALLBACK_MODELS. */
+export function geminiModelsFromEnv(env: NodeJS.ProcessEnv = process.env): string[] {
+  const list = [env.GEMINI_MODEL, ...(env.GEMINI_FALLBACK_MODELS ?? "").split(",")]
+    .map((m) => m?.trim())
+    .filter((m): m is string => !!m);
+  return [...new Set(list)];
+}
+
+async function callGeminiOnce(
   call: LlmCall,
   opts: { apiKey: string; model: string; timeoutMs?: number },
 ): Promise<LlmResult> {
@@ -39,8 +99,11 @@ export async function callGemini(
     error?: { message?: string; status?: string };
   };
   if (!res.ok) {
-    throw new Error(
-      `Gemini ${res.status}: ${body.error?.status ?? ""} ${body.error?.message ?? ""}`.trim(),
+    throw Object.assign(
+      new Error(
+        `Gemini ${res.status}: ${body.error?.status ?? ""} ${body.error?.message ?? ""}`.trim(),
+      ),
+      { status: res.status },
     );
   }
   const text = body.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ?? "";

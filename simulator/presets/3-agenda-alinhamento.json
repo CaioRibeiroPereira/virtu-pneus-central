@@ -8,6 +8,12 @@
     { "from": "vito", "text": "Pode sim, Juliana! Sábado às 9h está reservado para você." }
   ],
   "events": [
-    { "type": "appointment.requested", "confidence": 0.94, "evidence": "alinhamento no sábado de manhã, pode ser 9h?", "customer": { "phone": "(19) 90000-0004" }, "data": { "scheduled_at": "$NEXT_SATURDAY@09:00", "service_type": "alinhamento" } }
+    {
+      "type": "appointment.requested",
+      "confidence": 0.94,
+      "evidence": "alinhamento no sábado de manhã, pode ser 9h?",
+      "customer": { "phone": "(19) 90000-0004" },
+      "data": { "scheduled_at": "$NEXT_SATURDAY@09:00", "service_type": "alinhamento" }
+    }
   ]
 }

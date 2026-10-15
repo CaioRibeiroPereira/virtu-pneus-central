@@ -4,6 +4,11 @@
   "expected": "Mesmos event_id da conversa 1: o sistema responde 'duplicate' e nada é gravado duas vezes.",
   "replays": "orcamento-cliente-novo",
   "phone": "(19) 90000-0021",
-  "messages": [{ "from": "sistema", "text": "Reenvio automático dos eventos da conversa 'Cliente novo pede orçamento de 4 pneus' (ex.: timeout no n8n)." }],
+  "messages": [
+    {
+      "from": "sistema",
+      "text": "Reenvio automático dos eventos da conversa 'Cliente novo pede orçamento de 4 pneus' (ex.: timeout no n8n)."
+    }
+  ],
   "events": []
 }
