@@ -600,3 +600,24 @@ npx tsx scripts/gerar-workflow-n8n.ts           # workflow com o refine novo; re
 - `llama3.2:3b` direto: 61% com 0 indevidos nas duas rodadas.
 - n8n com Ollama: 3 eventos simultâneos, todos 201.
 - Depois: `npm run db:seed` para limpar a demo.
+
+---
+
+## Etapa 9 — Extra T2: resumo diário no Telegram (15/10/2026)
+
+**Objetivo:** §12.2 e item T2 do §19. Decisão D54.
+
+### 9.1 Sistema
+- `lib/rules/digest.ts`: `buildDigest` (corpo do endpoint) e `buildDigestMessage` (texto do Telegram).
+- `app/api/agenda/hoje/route.ts`: passou a usar o digest.
+- `lib/app-url.ts`: URL confiável, agora compartilhada com o simulador.
+- `formatLongDate` foi para `lib/dates.ts` (tela Hoje e resumo).
+- Testes: `tests/unit/digest.test.ts` (tudo em dia, plurais, orçamentos parados, sem telefone/e-mail, limite de 5 itens, URL) e `tests/unit/agenda-route.test.ts` (401). Ao todo, 179 passando.
+- Produção conferida após o deploy: `curl -H "authorization: Bearer $AGENT_API_TOKEN" https://virtu-pneus-central.vercel.app/api/agenda/hoje`.
+
+### 9.2 Telegram e n8n
+- Bot criado pelo Caio no @BotFather, com o token colocado em `.env.local`, sem passar pelo chat.
+- Chat id descoberto por `getUpdates`, depois do "oi" enviado ao bot.
+- Credencial `telegramApi` importada a partir de arquivo temporário, apagado do container e do disco.
+- `infra/n8n/.env`: `VITO_APP_URL` aponta para a produção (mesmo banco da demo, D37) e `VITO_TELEGRAM_CHAT_ID` foi preenchido.
+- `n8n execute` não serviu, por dois motivos: conflito na porta 5679 com a instância em execução e a exigência de um gatilho manual. O teste foi feito pelo botão **Execute workflow** (Playwright): os 3 nós ficaram verdes e a API do Telegram aceitou o envio. O print está em `docs/screenshots/n8n/04-resumo-diario.png`.

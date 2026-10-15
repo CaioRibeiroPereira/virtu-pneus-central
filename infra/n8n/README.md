@@ -1,4 +1,10 @@
-# n8n — o "Vito" extraindo dados das conversas
+# n8n — o "Vito" extraindo dados das conversas (e o resumo do dia)
+
+Dois workflows, ambos gerados por `npx tsx scripts/gerar-workflow-n8n.ts`:
+
+- `workflows/vito-extracao.json` — conversa do WhatsApp → IA → eventos no sistema (abaixo);
+- `workflows/vito-resumo-diario.json` — todo dia às 7h45, o resumo do painel "Hoje" no Telegram
+  ([seção própria](#resumo-diário-no-telegram)).
 
 Workflow que recebe uma conversa de WhatsApp, pede à IA os eventos do contrato (§8.1/§8.2) e envia
 cada um ao endpoint `POST /api/agent-events` do sistema. O **provedor é escolhido por conversa**
@@ -135,3 +141,30 @@ rodando localmente e o mesmo banco do Neon:
 
 As execuções com erro na lista são da depuração descrita nas D50 e D51. Esse teste também revelou uma condição de corrida no endpoint quando vários eventos da mesma
 conversa chegam juntos, já corrigida (D51).
+
+## Resumo diário no Telegram
+
+```mermaid
+flowchart LR
+  S[Schedule<br/>todo dia 7h45] --> H[HTTP<br/>GET /api/agenda/hoje] --> T[Telegram<br/>sendMessage]
+```
+
+O sistema devolve as contagens **e a mensagem pronta** (`lib/rules/digest.ts`, com testes): o n8n só
+agenda e entrega. A mensagem leva nomes e motivos, **nunca telefone ou e-mail** (minimização, LGPD),
+e mostra no máximo 5 itens por seção.
+
+Configuração:
+1. No Telegram, crie um bot com o **@BotFather** (`/newbot`) e mande um "oi" para ele.
+2. Descubra o seu chat id: `https://api.telegram.org/bot<TOKEN>/getUpdates` → `message.chat.id`.
+3. Em `infra/n8n/.env`: `VITO_TELEGRAM_CHAT_ID=<chat id>` e `VITO_APP_URL` apontando para o
+   sistema (a demo: `https://virtu-pneus-central.vercel.app`).
+4. Credencial do tipo **Telegram API** com o token, selecionada no nó **Enviar no Telegram** — pela
+   interface ou pela linha de comando, com o id `vitoTelegramBot01`:
+   `[{"id":"vitoTelegramBot01","name":"Telegram (bot do resumo)","type":"telegramApi","data":{"accessToken":"<TOKEN>"}}]`
+5. Importe e publique `vito-resumo-diario.json` (`--id=vitoResumoDiario01`). O fuso do agendamento
+   fica nas configurações do workflow (`America/Sao_Paulo`).
+
+Para testar sem esperar as 7h45: abra o workflow e use **Execute workflow**. (Pela linha de comando,
+`n8n execute` não serve: ele exige um gatilho manual.)
+
+![Resumo diário executado no n8n](../../docs/screenshots/n8n/04-resumo-diario.png)

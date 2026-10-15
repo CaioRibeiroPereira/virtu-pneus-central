@@ -73,9 +73,17 @@ Detalhes em [`docs/AGENTES_IA.md`](docs/AGENTES_IA.md). Resumo:
   origem (D53) vieram de erros medidos, não de suposição. Também mostrou o que **não** funciona: a
   extração focada, as dicas e a verificação por IA foram medidas e descartadas para o modelo local (D52).
 
+## Extras (§19 do plano)
+
+| Item | Situação |
+|---|---|
+| T1 — Workflow n8n de extração, com prints | feito: Gemini e Ollama de ponta a ponta ([`infra/n8n`](infra/n8n/README.md)) |
+| T12 — Ollama × Gemini com números | feito, com conjunto de validação e as estratégias testadas (D49, D52, D53) |
+| T2 — Resumo diário + `GET /api/agenda/hoje` | feito: às 7h45 o dono recebe no Telegram atrasados, agenda, orçamentos parados e revisões pendentes, com o link do painel; mensagem montada e testada no sistema (D54) |
+
 ## Principais decisões
 
-Todas em [`DECISOES.md`](DECISOES.md) (D1–D53), com contexto, opções e motivo. As que mais pesaram:
+Todas em [`DECISOES.md`](DECISOES.md) (D1–D54), com contexto, opções e motivo. As que mais pesaram:
 
 - **D2 — Next.js + Vercel + Neon + Drizzle:** o vinext do original é beta e o limite de 10 ms de
   CPU do Workers gratuito é risco para renderizar no servidor; Next usa a mesma estrutura `app/`,

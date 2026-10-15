@@ -285,3 +285,15 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
 - Contexto: os indevidos restantes eram, quase todos, o nome que a **loja** usou no cumprimento ("Perfeito, Gustavo!", "seu Antônio") virando cadastro. O prompt já proibia isso; modelo pequeno ignora, e o Gemini às vezes também.
 - Escolha: em `refine.ts`, nome, e-mail e cidade só valem se aparecerem em mensagem do **cliente**; o valor de um orçamento só passa com confiança alta se a **loja** o disse. Placa, medida, ano e modelo continuam valendo de qualquer lado.
 - Efeito: indevidos do `llama3.2:3b` 1 → 0 (direto) e 5 → 3 (com dicas), sem perder acerto. No Gemini: 97% no simulador e **98% na validação**, sinal de que o prompt generaliza.
+
+## Decisões dos extras
+
+**D54 — Resumo diário: o sistema escreve a mensagem, o n8n só agenda e entrega (T2)** (15/10)
+- Contexto: o §12.2 pede um resumo às 7h45 por e-mail ou Telegram. O dono escolheu o **Telegram**: chega no celular, é grátis e não exige senha de e-mail.
+- Escolha:
+  - O `GET /api/agenda/hoje` devolve as contagens (inclusive orçamentos parados e agendamentos) e a **mensagem pronta**, montada em `lib/rules/digest.ts` com testes.
+  - O workflow do n8n tem só 3 nós (agendamento → GET → Telegram).
+  - A mensagem leva nomes e motivos, **sem telefone nem e-mail** (minimização), com no máximo 5 itens por seção.
+  - O link do painel usa o domínio de produção (`lib/app-url.ts`, a mesma regra da D38, agora compartilhada com o simulador).
+- Motivo: texto em código é testável e versionado, e o mesmo formato serve para outro canal no futuro. Lógica escondida em nós do n8n não tem teste.
+- Segredos: o token do bot fica em `.env.local` e numa credencial do n8n; o chat id, em `infra/n8n/.env` (fora do git).
