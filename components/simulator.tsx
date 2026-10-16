@@ -132,7 +132,9 @@ export function Simulator({
                 {m.from === "cliente"
                   ? "Cliente"
                   : m.from === "vito"
-                    ? "Vito (atendente virtual)"
+                    ? // Do lado da loja quem responde no WhatsApp é o atendente; o Vito só lê a
+                      // conversa e extrai os dados (ele nunca passa preço — D57).
+                      "Loja (atendente)"
                     : "Sistema"}
               </p>
               <p>{m.text}</p>
