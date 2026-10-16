@@ -64,6 +64,13 @@
       "when": 1792175704362,
       "tag": "0008_canal_telegram_atendimento",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792177734446,
+      "tag": "0009_telegram_pergunta_nome",
+      "breakpoints": true
     }
   ]
 }

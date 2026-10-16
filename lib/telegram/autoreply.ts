@@ -184,3 +184,68 @@ export function planReply(input: ReplyInput): ReplyPlan {
   }
   return { intent, messages, askContact, notifyOwner, markDisclosed, markHandoff };
 }
+
+export const ASK_NAME_TEXT = "Para eu deixar o seu cadastro certinho: qual é o seu nome?";
+
+const NAME_PREFIX =
+  /^(meu nome (e|eh)|me chamo|eu sou (o|a)|sou (o|a)|sou|aqui (e|eh) (o|a)|(e|eh) (o|a))\s+/;
+/** Palavras que aparecem em mensagens, mas não em nomes: evitam cadastrar "Pneu Aro" como nome. */
+const NOT_NAME = new Set([
+  "oi",
+  "ola",
+  "sim",
+  "nao",
+  "ok",
+  "obrigado",
+  "obrigada",
+  "valeu",
+  "pneu",
+  "pneus",
+  "aro",
+  "carro",
+  "preco",
+  "orcamento",
+  "quanto",
+  "qual",
+  "quero",
+  "queria",
+  "alinhamento",
+  "balanceamento",
+  "bom",
+  "boa",
+  "dia",
+  "tarde",
+  "noite",
+  "tudo",
+  "bem",
+  "horario",
+  "endereco",
+  "agendamento",
+]);
+const LOWER = new Set(["da", "de", "do", "das", "dos", "e"]);
+
+/**
+ * O nome que a pessoa respondeu ("Ana Paula", "me chamo ana paula") ou null quando a resposta não
+ * parece um nome (pergunta, número, assunto da oficina). Função pura; o gestor confere na ficha.
+ */
+export function parseName(text: string): string | null {
+  const plain = normalizeText(text)
+    .replace(/[.!,]+$/g, "")
+    .trim();
+  const words = text
+    .trim()
+    .replace(/[.!,]+$/g, "")
+    .split(/\s+/)
+    .slice(plain.match(NAME_PREFIX)?.[0].trim().split(/\s+/).length ?? 0);
+  if (!words.length || words.length > 5) return null;
+  if (words.join(" ").length < 2 || words.join(" ").length > 60) return null;
+  if (!words.every((w) => /^[A-Za-zÀ-ÖØ-öø-ÿ'’-]+$/.test(w))) return null;
+  if (words.some((w) => NOT_NAME.has(normalizeText(w)))) return null;
+  return words
+    .map((w, i) =>
+      i > 0 && LOWER.has(w.toLowerCase())
+        ? w.toLowerCase()
+        : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(),
+    )
+    .join(" ");
+}

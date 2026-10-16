@@ -453,3 +453,13 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
   Fica uma única linha de auditoria "delete" com o id e o motivo, sem dado pessoal (§6 do plano). O estoque não volta (a mercadoria saiu de verdade); as movimentações ficam, sem o vínculo com o cliente.
 - **Excluir conversa** (pedido do Caio, mesmo dia): botão na conversa (tela Conversas e ficha), com confirmação. Apaga a conversa e as mensagens. Os dados que o Vito já levou para a ficha continuam (para apagar tudo do cliente há a exclusão LGPD). Se a pessoa escrever de novo, começa uma conversa nova, com o aviso inicial. Fica na auditoria só o registro da exclusão, sem conteúdo.
 - **Canal na Revisão** (pedido do Caio, mesmo dia): cada sugestão mostra de onde veio, "via Telegram", "via WhatsApp" ou "via WhatsApp (simulador)". O contrato (§8) só conhece `whatsapp`, então o canal sai do id da conversa (`tg-…` = Telegram, `sim-…` = simulador). A etiqueta revelou uma incoerência, também corrigida: o atendimento vindo do Telegram era gravado como "WhatsApp". Agora existe o canal **Telegram** (migração 0008, também no contrato e no registro manual de atendimento), e o atendimento de conversa `tg-…` é gravado como Telegram.
+
+**D65 — O Vito pergunta o nome de quem ainda não é cliente** (16/10)
+- Pedido do Caio: o Vito tem que perguntar o nome para colocar no cliente. Antes, quem não tinha cadastro virava "Contato (telefone)" até o gestor editar.
+- **Quando:** logo depois que a pessoa compartilha o telefone e ele não está em nenhum cadastro ("Obrigado! Anotei o seu telefone." + "Para eu deixar o seu cadastro certinho: qual é o seu nome?"). Se a pessoa já tinha compartilhado o telefone antes, a pergunta vai junto da próxima resposta do Vito.
+- **A resposta vira o cadastro**, se parecer um nome. Aceita "Ana Paula", "me chamo ana paula" ou "meu nome é João da Silva", com as maiúsculas arrumadas. Recusa pergunta, número ou assunto da oficina ("quero 4 pneus").
+  - O cliente é criado **provisório**, como os criados pelo Vito: tem o selo "Criado pelo Vito: confira" e o gestor confirma ao salvar a ficha.
+  - Vem com o telefone verificado (só o próprio número é aceito — D57) e a conversa já ligada.
+  - O dono é avisado no bot do resumo.
+  - Os eventos da extração casam pelo telefone com esse cadastro, sem criar outro.
+- Uma pergunta no meio ("que horas vocês abrem?") é respondida normalmente, e o Vito continua esperando o nome. Migração 0009 (`telegram_chats.name_asked_at`).

@@ -3,13 +3,15 @@
 // (banco, envio, aviso ao dono) para os testes rodarem sem Telegram.
 import { and, asc, eq, gte, inArray } from "drizzle-orm";
 import type { Db } from "@/db";
-import { appointments, customers, telegramChats, telegramMessages } from "@/db/schema";
+import { appointments, auditLog, customers, telegramChats, telegramMessages } from "@/db/schema";
 import { serviceTypeLabel } from "@/lib/labels";
 import { normalizePhone } from "@/lib/phone";
 import type { SendMessage, TelegramUpdate } from "./api";
 import {
+  ASK_NAME_TEXT,
   greetingName,
   HANDOFF_MS,
+  parseName,
   planReply,
   type NextAppointment,
   type ShopInfo,
@@ -155,19 +157,24 @@ export async function handleTelegramUpdate(
       .where(eq(customers.phoneE164, phone.e164));
     [chat] = await db
       .update(telegramChats)
-      .set({ phoneE164: phone.e164, customerId: customer?.id ?? null })
+      // Sem cadastro: o Vito pergunta o nome (a próxima resposta vira o cadastro — D65).
+      .set({
+        phoneE164: phone.e164,
+        customerId: customer?.id ?? null,
+        nameAskedAt: customer ? null : now,
+      })
       .where(eq(telegramChats.chatId, chatId))
       .returning();
     await sendAll(
       deps,
       chatId,
-      [
-        customer && greetingName(customer.name, null)
-          ? `Obrigado, ${greetingName(customer.name, null)}! Encontrei o seu cadastro. Em que posso ajudar?`
-          : customer
-            ? "Obrigado! Encontrei o seu cadastro. Em que posso ajudar?"
-            : "Obrigado! Anotei o seu telefone. Em que posso ajudar?",
-      ],
+      customer && greetingName(customer.name, null)
+        ? [
+            `Obrigado, ${greetingName(customer.name, null)}! Encontrei o seu cadastro. Em que posso ajudar?`,
+          ]
+        : customer
+          ? ["Obrigado! Encontrei o seu cadastro. Em que posso ajudar?"]
+          : ["Obrigado! Anotei o seu telefone.", ASK_NAME_TEXT],
       { removeKeyboard: true },
     );
     await deps
@@ -195,6 +202,56 @@ export async function handleTelegramUpdate(
         .returning();
     }
   }
+  // ---------- resposta ao "qual é o seu nome?" ----------
+  // Parece um nome: vira o cadastro (provisório, como os criados pelo Vito: o gestor confere).
+  const informedName =
+    chat.phoneE164 && !chat.customerId && chat.nameAskedAt ? parseName(msg.text ?? "") : null;
+  if (informedName && chat.phoneE164) {
+    const phone = normalizePhone(chat.phoneE164)!;
+    const [created] = await db
+      .insert(customers)
+      .values({
+        name: informedName,
+        phoneE164: phone.e164,
+        phoneDisplay: phone.display,
+        isProvisional: true,
+        source: "agente",
+        notes: "Cadastrado pelo Vito no Telegram, com o nome informado pelo cliente.",
+      })
+      .onConflictDoNothing({ target: customers.phoneE164 })
+      .returning({ id: customers.id });
+    const customerId =
+      created?.id ??
+      (
+        await db
+          .select({ id: customers.id })
+          .from(customers)
+          .where(eq(customers.phoneE164, phone.e164))
+      )[0]?.id;
+    if (created) {
+      await db.insert(auditLog).values({
+        entityType: "customer",
+        entityId: created.id,
+        action: "create",
+        actorType: "agente",
+        after: { name: informedName, provisional: true, origem: "Telegram" },
+      });
+    }
+    await db
+      .update(telegramChats)
+      .set({ customerId: customerId ?? null, nameAskedAt: null })
+      .where(eq(telegramChats.chatId, chatId));
+    await sendAll(deps, chatId, [
+      `Prazer, ${informedName.split(" ")[0]}! Já anotei no seu cadastro. Em que posso ajudar?`,
+    ]);
+    await deps
+      .notifyOwner?.(
+        `🆕 ${informedName} (Telegram) se apresentou ao Vito. Ficha: ${deps.appUrl}/clientes/${customerId}`,
+      )
+      .catch(() => {});
+    return { status: "ok", intent: "nome", customerId: customerId ?? null };
+  }
+
   const [customer] = chat.customerId
     ? await db
         .select({ name: customers.name })
@@ -216,13 +273,19 @@ export async function handleTelegramUpdate(
     shop: deps.shop,
   });
 
-  await sendAll(deps, chatId, plan.messages, { askContact: plan.askContact, intent: plan.intent });
-  if (plan.markDisclosed || plan.markHandoff) {
+  // Telefone conhecido, sem cadastro e o nome nunca perguntado (ex.: conversa anterior à D65 ou
+  // demonstração reiniciada): pergunta junto com a resposta, se o Vito ainda estiver falando.
+  const askName =
+    !!chat.phoneE164 && !chat.customerId && !chat.nameAskedAt && plan.messages.length > 0;
+  const messages = askName ? [...plan.messages, ASK_NAME_TEXT] : plan.messages;
+  await sendAll(deps, chatId, messages, { askContact: plan.askContact, intent: plan.intent });
+  if (plan.markDisclosed || plan.markHandoff || askName) {
     await db
       .update(telegramChats)
       .set({
         ...(plan.markDisclosed ? { disclosedAt: now } : {}),
         ...(plan.markHandoff ? { handedOffAt: now } : {}),
+        ...(askName ? { nameAskedAt: now } : {}),
       })
       .where(eq(telegramChats.chatId, chatId));
   }

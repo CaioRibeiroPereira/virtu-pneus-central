@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   classify,
   greetingName,
+  parseName,
   HANDOFF_TEXT,
   planReply,
   type ReplyInput,
@@ -152,4 +153,23 @@ describe("cumprimento pelo nome", () => {
     expect(greetingName("Contato (35) 99999-0000", null)).toBe("");
     expect(greetingName(null, "Ana")).toBe("Ana");
   });
+});
+
+describe("nome informado ao Vito", () => {
+  it.each([
+    ["Ana Paula", "Ana Paula"],
+    ["me chamo ana paula", "Ana Paula"],
+    ["Meu nome é João da Silva.", "João da Silva"],
+    ["sou o Caio", "Caio"],
+    ["RAFAELA", "Rafaela"],
+  ])("%s → %s", (text, name) => {
+    expect(parseName(text)).toBe(name);
+  });
+
+  it.each(["qual o horário?", "quero 4 pneus", "oi", "185/65 R15", "obrigado", "pneu aro 15", ""])(
+    "%s não é nome",
+    (text) => {
+      expect(parseName(text)).toBeNull();
+    },
+  );
 });

@@ -264,3 +264,42 @@ describe("excluir a conversa", () => {
     expect(await deleteConversation(db, "888001")).toBe(false);
   });
 });
+
+describe("Vito pergunta o nome de quem não é cliente (D65)", () => {
+  const CHAT2 = 777002;
+  const upd = (id: number, extra: object) => ({
+    update_id: id,
+    message: {
+      message_id: id,
+      from: { id: CHAT2, first_name: "Ana" },
+      chat: { id: CHAT2, type: "private" },
+      date: 0,
+      ...extra,
+    },
+  });
+
+  it("telefone sem cadastro → pergunta o nome → a resposta vira o cadastro", async () => {
+    await handleTelegramUpdate(upd(5001, { text: "oi" }), deps());
+    await handleTelegramUpdate(
+      upd(5002, { contact: { phone_number: "+55 19 98111-2222", user_id: CHAT2 } }),
+      deps(),
+    );
+    expect(sent.at(-1)?.text).toBe("Para eu deixar o seu cadastro certinho: qual é o seu nome?");
+
+    // Uma pergunta no meio não vira nome; o Vito responde e continua esperando o nome.
+    await handleTelegramUpdate(upd(5003, { text: "que horas vocês abrem?" }), deps());
+    expect(
+      await db.select().from(customers).where(eq(customers.phoneE164, "+5519981112222")),
+    ).toEqual([]);
+
+    await handleTelegramUpdate(upd(5004, { text: "me chamo ana paula" }), deps());
+    const [c] = await db.select().from(customers).where(eq(customers.phoneE164, "+5519981112222"));
+    expect(c).toMatchObject({ name: "Ana Paula", isProvisional: true, source: "agente" });
+    expect(sent.at(-1)?.text).toBe("Prazer, Ana! Já anotei no seu cadastro. Em que posso ajudar?");
+    const [chat] = await db
+      .select()
+      .from(telegramChats)
+      .where(eq(telegramChats.chatId, String(CHAT2)));
+    expect(chat).toMatchObject({ customerId: c.id, nameAskedAt: null });
+  });
+});

@@ -1,0 +1,1 @@
+ALTER TABLE "telegram_chats" ADD COLUMN "name_asked_at" timestamp with time zone;

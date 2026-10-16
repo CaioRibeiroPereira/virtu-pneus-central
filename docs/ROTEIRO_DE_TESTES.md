@@ -203,9 +203,10 @@ roda no site), mas nada vai para a extração.
 | # | Passos | Esperado | OK | Obs. |
 |---|---|---|---|---|
 | 1 | No Telegram, abra **@virtu_oficina_bot** e mande "oi" | Boas-vindas do Vito e o pedido do telefone | [ ] | |
-| 2 | Toque em **Compartilhar meu telefone** | "Obrigado! … Em que posso ajudar?"; em **Conversas** aparece a sua conversa | [ ] | |
+| 2 | Toque em **Compartilhar meu telefone** | Se você não é cliente: "Obrigado! Anotei o seu telefone." e "qual é o seu nome?"; em **Conversas** aparece a sua conversa | [ ] | |
+| 2b | Responda o seu nome (ex.: "me chamo Caio Ribeiro") | "Prazer, Caio! Já anotei no seu cadastro."; em **Clientes** aparece "Caio Ribeiro" com o selo "Criado pelo Vito" | [ ] | |
 | 3 | Mande: "Queria orçamento de 4 pneus 185/65 R15 para o meu Onix" | "Recebemos sua mensagem…" (passa para o dono); o bot do resumo te avisa | [ ] | |
-| 4 | **Não mande mais nada por 2–3 minutos** (a extração espera a conversa parar) | Em **Clientes**, aparece um cliente criado pelo Vito com o seu telefone, com o atendimento **"Atendimento · Telegram"** no histórico | [ ] | |
+| 4 | **Não mande mais nada por 2–3 minutos** (a extração espera a conversa parar) | Na ficha com o seu nome aparece **"Atendimento · Telegram"** no histórico (e o orçamento, se o Vito entender) | [ ] | |
 | 5 | Mande: "Pode fechar o orçamento, aprovado" e espere 2–3 min | Na **Revisão**, "Mudar situação do orçamento" com **"via Telegram"** (mexe com dinheiro: sempre passa por você) | [ ] | |
 | 6 | Mande: "Posso levar o carro dia 10 de setembro às 9h?" e espere 2–3 min | Na **Revisão**, "Criar agendamento" com o motivo **"A data já passou: confira"** e **"via Telegram"** | [ ] | |
 | 7 | Aprove, corrija ("Editar e aprovar") ou rejeite cada uma | Igual às sugestões do WhatsApp; o resultado aparece na ficha | [ ] | |

@@ -401,6 +401,8 @@ export const telegramChats = pgTable(
      * respondeu). Até HANDOFF_MS depois, o Vito fica em silêncio. (Coluna antiga: last_fallback_at.)
      */
     handedOffAt: timestamp("last_fallback_at", { withTimezone: true }),
+    /** Quando o Vito perguntou o nome (telefone sem cadastro): a próxima resposta pode ser o nome. */
+    nameAskedAt: timestamp("name_asked_at", { withTimezone: true }),
     ...timestamps,
   },
   (t) => [index("telegram_chats_customer_idx").on(t.customerId)],
