@@ -621,3 +621,32 @@ npx tsx scripts/gerar-workflow-n8n.ts           # workflow com o refine novo; re
 - Credencial `telegramApi` importada a partir de arquivo temporário, apagado do container e do disco.
 - `infra/n8n/.env`: `VITO_APP_URL` aponta para a produção (mesmo banco da demo, D37) e `VITO_TELEGRAM_CHAT_ID` foi preenchido.
 - `n8n execute` não serviu, por dois motivos: conflito na porta 5679 com a instância em execução e a exigência de um gatilho manual. O teste foi feito pelo botão **Execute workflow** (Playwright): os 3 nós ficaram verdes e a API do Telegram aceitou o envio. O print está em `docs/screenshots/n8n/04-resumo-diario.png`.
+
+---
+
+## Etapa 10 — Novo visual "Amigável" com tema claro e escuro (15/10/2026)
+
+**Objetivo:** pedido do Caio ("o estilo está muito simples") e extra T10. Decisão D55.
+
+### 10.1 Modelos (descartáveis, fora do repositório)
+- `D:\Projeto Grupo Virtu\propostas-estilo\`: 4 versões da tela Hoje (A painel, B oficina escura, C lista compacta, D amigável), com os dados da demo, prints em 375/1280 px e um `index.html` de comparação.
+- Escolhido o D. Pedidos do Caio, aplicados no modelo antes do código:
+  - "Novo cliente" dentro da tela Hoje, não no menu;
+  - modo claro e escuro.
+- Cada modelo foi conferido quanto à rolagem lateral no celular; o modelo D também passou pelo axe (contraste) nos dois temas.
+
+### 10.2 Implementação
+- `app/globals.css`: variáveis dos dois temas e componentes no estilo D (cartões 22 px, botões de 46 px, barra inferior flutuante, barra lateral arredondada).
+- `app/layout.tsx`: fonte Plus Jakarta Sans (`next/font`) e script que aplica o tema antes da pintura.
+- `components/theme-toggle.tsx`: botão sol/lua, sem efeito colateral na renderização (`useSyncExternalStore` observando `data-theme`).
+- `app/(app)/hoje/page.tsx` + `lib/rules/today-extras.ts`: saudação, progresso, filtros, cartões, agenda, painel do Vito e orçamentos parados.
+- `components/task-actions.tsx`: variante compacta, que mantém os nomes acessíveis "Concluir…" e "Adiar…".
+
+### 10.3 Verificações
+```bash
+npm run build && npx playwright test   # 12 passando: axe em 2 temas × 2 larguras × 7 telas, fluxos, botão de tema
+npx vitest run                         # 179 passando (2 rodadas seguidas)
+```
+- O axe no tema escuro achou 2 falhas reais: o hover do botão verde (4,28:1) e o verde de botão usado como texto (3,56:1). As duas foram corrigidas (D55).
+- No build de produção, a navegação por todas as telas nos dois temas registrou 0 erros no console. Isso descarta o aviso de hidratação visto uma vez no servidor de desenvolvimento.
+- **Correção de um diagnóstico anterior:** os testes de integração que "falhavam ao carregar" na suíte completa (vistos também na etapa 8) não eram pressão de memória. Era o tempo limite de 10 s do `beforeAll`, que sobe o PGlite com migrações e seed em paralelo. Com `hookTimeout: 60_000` em `vitest.config.ts`, a suíte passou duas vezes seguidas.

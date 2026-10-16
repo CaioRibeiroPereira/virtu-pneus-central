@@ -44,7 +44,7 @@ export default async function RevisaoPage() {
 
       {cards.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: 32 }}>
-          <CircleCheck aria-hidden="true" size={40} color="var(--primary)" />
+          <CircleCheck aria-hidden="true" size={40} color="var(--accent-text)" />
           <h2 style={{ marginTop: 8 }}>Nenhuma sugestão esperando</h2>
           <p className="muted" style={{ marginTop: 4 }}>
             Quando o Vito tiver dúvida ou a sugestão mexer com dinheiro, ela aparece aqui.

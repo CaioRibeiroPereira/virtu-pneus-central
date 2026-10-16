@@ -72,3 +72,15 @@ export const channelLabel: Record<string, string> = {
 
 /** Lista [valor, rótulo] para montar <select>. */
 export const options = (labels: Record<string, string>) => Object.entries(labels);
+
+/** O que cada evento do Vito propõe, em linguagem do dono (resumo da Revisão na tela Hoje). */
+export const agentEventLabel: Record<string, string> = {
+  "customer.upserted": "dados do cliente",
+  "vehicle.identified": "veículo",
+  "interaction.logged": "atendimento",
+  "quote.created": "orçamento novo",
+  "quote.status_changed": "decisão sobre orçamento",
+  "appointment.requested": "agendamento",
+  "task.suggested": "próxima ação",
+  "service.completed": "serviço feito",
+};

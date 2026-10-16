@@ -297,3 +297,14 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
   - O link do painel usa o domínio de produção (`lib/app-url.ts`, a mesma regra da D38, agora compartilhada com o simulador).
 - Motivo: texto em código é testável e versionado, e o mesmo formato serve para outro canal no futuro. Lógica escondida em nós do n8n não tem teste.
 - Segredos: o token do bot fica em `.env.local` e numa credencial do n8n; o chat id, em `infra/n8n/.env` (fora do git).
+
+**D55 — Novo visual "Amigável", com tema claro e escuro (T10)** (15/10)
+- Contexto: o dono achou o visual simples demais. Quatro modelos da tela Hoje foram feitos numa pasta descartável, fora do repositório (painel, oficina escura, lista compacta, amigável), e ele escolheu o **D**, pedindo o "Novo cliente" **dentro** da tela Hoje (e não no menu) e os dois temas.
+- Escolha:
+  - **Uma base para todas as telas:** todas as cores são variáveis em `app/globals.css`; o tema escuro troca só os valores. As outras telas mudaram só pelo CSS, mantendo as classes.
+  - **Tela Hoje redesenhada:** saudação conforme a hora da loja, anel de progresso (concluídas hoje × pendentes), "+ Novo cliente", filtros em pílulas pela URL (`?filtro=`, funcionam sem JavaScript), cartões com iniciais e WhatsApp em destaque, e uma coluna com agenda, "Vito precisa de você" e orçamentos parados com o total em R$ (`lib/rules/today-extras.ts`).
+  - **Regra de cor:** limão cheio = ação principal; verde escuro com traço limão = página atual; verde de **texto** usa `--accent-text`, nunca a cor de botão.
+  - **Tema:** sem escolha salva, segue o aparelho. O botão sol/lua (barra lateral; topo no celular) salva a escolha no navegador. Um script curto no `<head>` aplica o tema antes da pintura, para não "piscar".
+  - **Fonte:** Plus Jakarta Sans pelo `next/font`, baixada no build e servida pelo próprio site (a CSP `font-src 'self'` continua valendo).
+- Acessibilidade: o axe roda agora nos **dois temas** × 375/1280 px, nas 7 telas, com 0 violações. Ele achou dois problemas no escuro, já corrigidos: o hover do botão verde clareava (4,28:1) e passou a escurecer; e o verde de botão era usado como texto (3,56:1) em 3 lugares, que passaram para `--accent-text`.
+- Correção de diagnóstico: eu tinha dito que a barra lateral "não ia até o fim da página". Ela é fixa e sempre cobre a altura da tela; o corte aparecia só nos prints de página inteira.

@@ -6,17 +6,23 @@ import { Check, Clock, MessageCircle } from "lucide-react";
 import { completeTaskAction, reopenTaskAction, snoozeTaskAction } from "@/app/(app)/actions";
 import { formatDate } from "@/lib/dates";
 
-/** Botões de 1 toque de uma próxima ação: WhatsApp, Concluir (com desfazer) e Adiar. */
+/**
+ * Botões de 1 toque de uma próxima ação: WhatsApp, Concluir (com desfazer) e Adiar.
+ * `compact` (tela Hoje): WhatsApp ocupa a largura; Concluir e Adiar só com ícone — o nome
+ * acessível continua "Concluir…"/"Adiar…".
+ */
 export function TaskActions({
   taskId,
   title,
   whatsappHref,
   customerName,
+  compact = false,
 }: {
   taskId: string;
   title: string;
   whatsappHref: string | null;
   customerName: string;
+  compact?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [customDate, setCustomDate] = useState("");
@@ -40,7 +46,10 @@ export function TaskActions({
     });
 
   return (
-    <div className="btn-row" style={{ marginTop: 12 }}>
+    <div
+      className={compact ? "task-actions" : "btn-row"}
+      style={compact ? undefined : { marginTop: 12 }}
+    >
       {whatsappHref && (
         <a
           className="btn btn-primary"
@@ -49,19 +58,22 @@ export function TaskActions({
           rel="noopener noreferrer"
         >
           <MessageCircle aria-hidden="true" size={18} />
-          WhatsApp<span className="sr-only"> para {customerName} (abre em nova aba)</span>
+          {compact && <span className="wide-only">Chamar no </span>}
+          WhatsApp
+          <span className="sr-only"> para {customerName} (abre em nova aba)</span>
         </a>
       )}
       <button type="button" className="btn" onClick={complete} disabled={pending}>
         <Check aria-hidden="true" size={18} />
-        Concluir
+        <span className={compact ? "sr-only" : undefined}>Concluir</span>
         <span className="sr-only">
           : {title} de {customerName}
         </span>
       </button>
       <details className="snooze">
         <summary className="btn" aria-label={`Adiar: ${title} de ${customerName}`}>
-          <Clock aria-hidden="true" size={18} /> Adiar
+          <Clock aria-hidden="true" size={18} />
+          {!compact && " Adiar"}
         </summary>
         <div className="card" style={{ marginTop: 8, display: "grid", gap: 8 }}>
           <button type="button" className="btn" disabled={pending} onClick={() => snooze("amanha")}>

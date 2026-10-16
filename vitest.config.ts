@@ -9,5 +9,8 @@ export default defineConfig({
     include: ["tests/**/*.test.ts"],
     // Os primeiros testes chegam na Fase 1 (lib/dates, lib/phone, lib/search).
     passWithNoTests: true,
+    // Cada arquivo de integração sobe um Postgres em memória (PGlite) com as migrações e o seed no
+    // beforeAll; com a suíte inteira em paralelo isso passava dos 10 s padrão.
+    hookTimeout: 60_000,
   },
 });

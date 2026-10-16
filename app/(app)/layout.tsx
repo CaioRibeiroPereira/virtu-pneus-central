@@ -5,6 +5,7 @@ import { getDb } from "@/db";
 import { hasSession } from "@/lib/auth/session";
 import { pendingReviewCount } from "@/lib/customers/queries";
 import { BottomNav, SidebarNav } from "@/components/nav";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Toaster } from "@/components/toaster";
 
 // Layout das telas do gestor: exige sessão (além do proxy) e mostra a navegação.
@@ -24,20 +25,21 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           virtù<span>.</span>
         </Link>
         <SidebarNav reviewCount={reviewCount} />
-        <form action="/logout" method="post" style={{ marginTop: "auto" }}>
-          <button type="submit" className="btn" style={{ width: "100%" }}>
-            <LogOut aria-hidden="true" size={18} /> Sair
-          </button>
-        </form>
+        <div className="sidebar-foot">
+          <ThemeToggle withLabel />
+          <form action="/logout" method="post">
+            <button type="submit" className="btn">
+              <LogOut aria-hidden="true" size={18} /> Sair
+            </button>
+          </form>
+        </div>
       </aside>
       <div>
         <header className="topbar">
           <Link href="/hoje" className="brand">
             virtù<span>.</span>
           </Link>
-          <span style={{ color: "var(--sidebar-muted)", fontWeight: 600 }}>
-            Central de clientes
-          </span>
+          <ThemeToggle />
         </header>
         <main id="conteudo" tabIndex={-1} className="page">
           {children}

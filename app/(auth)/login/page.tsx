@@ -13,7 +13,7 @@ export default async function LoginPage({
   return (
     <main className="page" style={{ maxWidth: 440, paddingTop: "12vh" }}>
       <p className="brand" style={{ color: "var(--text)", marginBottom: 16 }}>
-        virtù<span style={{ color: "var(--primary)" }}>.</span>
+        virtù<span style={{ color: "var(--accent-text)" }}>.</span>
       </p>
       <section className="card" aria-labelledby="titulo">
         <h1 id="titulo">Central de clientes</h1>

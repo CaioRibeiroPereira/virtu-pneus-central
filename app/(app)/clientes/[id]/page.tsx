@@ -249,7 +249,7 @@ export default async function FichaPage({
                         minHeight: 44,
                         display: "flex",
                         alignItems: "center",
-                        color: "var(--primary)",
+                        color: "var(--accent-text)",
                         fontWeight: 600,
                       }}
                     >

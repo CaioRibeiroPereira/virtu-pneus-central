@@ -20,7 +20,7 @@ servia para dados reais. O diagnóstico completo está em [`docs/DIAGNOSTICO.md`
 | Esquecimento | tarefas manuais genéricas | regras R1–R4 (follow-up 3 dias, pós-venda 7, retorno 180, confirmar na véspera), idempotentes |
 | Controle do gestor | — | fila de **Revisão** com evidência e comparação "antes × proposto"; dinheiro sempre passa pelo gestor |
 | Datas | histórico em UTC; demo "congelada" em 24/09 | fuso de São Paulo em todo lugar; seed relativo a hoje + "Reiniciar demonstração" |
-| Acessibilidade | Lighthouse 89–95; **597** falhas de contraste no axe | Lighthouse **100** em todas as telas; axe **sem violações** em 375 e 1280 px; reflow em 320 px |
+| Acessibilidade | Lighthouse 89–95; **597** falhas de contraste no axe | Lighthouse **100** em todas as telas; axe **sem violações** em 375 e 1280 px, nos temas **claro e escuro**; reflow em 320 px |
 | Celular | tabela e kanban rolando de lado; menu que não fecha | barra inferior, cards, alvos de 44 px |
 | Testes | nenhum | 152 de unidade/integração, 7 E2E com axe, banco de testes da IA |
 
@@ -32,8 +32,8 @@ Prints: antes em [`docs/diagnostico-screenshots/`](docs/diagnostico-screenshots/
 | Tipo | Ferramenta | Resultado |
 |---|---|---|
 | Unidade + integração | Vitest; Postgres em memória (PGlite) com as **migrações reais** | **152 passando**: datas/fuso, telefone, busca, auth, regras R1–R4, endpoint (401/413/415/422, idempotência, matching, decisão, conflito com edição humana, eventos simultâneos), revisão, extração da IA |
-| E2E | Playwright (Chrome) | **7 passando** localmente e **contra a produção**: concluir ação → linha do tempo; simulador → aplica, reenvio ignorado, alto impacto → revisão → aprovar → ficha |
-| Acessibilidade automática | axe-core (WCAG 2.0/2.1/2.2 A e AA) | **0 violações** em login, Hoje, Clientes, Novo cliente, Mais, Revisão e Simulador, em 375 e 1280 px |
+| E2E | Playwright (Chrome) | **12 passando** localmente e **contra a produção**: concluir ação → linha do tempo; simulador → aplica, reenvio ignorado, alto impacto → revisão → aprovar → ficha |
+| Acessibilidade automática | axe-core (WCAG 2.0/2.1/2.2 A e AA) | **0 violações** em login, Hoje, Clientes, Ficha, Novo/Editar cliente, Mais, Revisão e Simulador, em 375 e 1280 px, nos temas claro e escuro |
 | Lighthouse 13.5 (produção) | ver tabela abaixo | Acessibilidade 100 em todas |
 | IA | `scripts/avaliar-extracao.ts` | ver [`docs/AVALIACAO_IA.md`](docs/AVALIACAO_IA.md) e a seção abaixo |
 | Navegação guiada | Playwright na produção | roteiro da demo percorrido em 375 e 1280 px, com prints de cada tela |
@@ -79,11 +79,12 @@ Detalhes em [`docs/AGENTES_IA.md`](docs/AGENTES_IA.md). Resumo:
 |---|---|
 | T1 — Workflow n8n de extração, com prints | feito: Gemini e Ollama de ponta a ponta ([`infra/n8n`](infra/n8n/README.md)) |
 | T12 — Ollama × Gemini com números | feito, com conjunto de validação e as estratégias testadas (D49, D52, D53) |
+| T10 — Modo escuro | feito, junto com o novo visual "Amigável" escolhido pelo dono (D55): tema do aparelho por padrão, botão sol/lua, contraste validado pelo axe nos dois temas |
 | T2 — Resumo diário + `GET /api/agenda/hoje` | feito: às 7h45 o dono recebe no Telegram atrasados, agenda, orçamentos parados e revisões pendentes, com o link do painel; mensagem montada e testada no sistema (D54) |
 
 ## Principais decisões
 
-Todas em [`DECISOES.md`](DECISOES.md) (D1–D54), com contexto, opções e motivo. As que mais pesaram:
+Todas em [`DECISOES.md`](DECISOES.md) (D1–D55), com contexto, opções e motivo. As que mais pesaram:
 
 - **D2 — Next.js + Vercel + Neon + Drizzle:** o vinext do original é beta e o limite de 10 ms de
   CPU do Workers gratuito é risco para renderizar no servidor; Next usa a mesma estrutura `app/`,
