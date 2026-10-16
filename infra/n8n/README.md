@@ -4,7 +4,9 @@ Dois workflows, ambos gerados por `npx tsx scripts/gerar-workflow-n8n.ts`:
 
 - `workflows/vito-extracao.json` — conversa do WhatsApp → IA → eventos no sistema (abaixo);
 - `workflows/vito-resumo-diario.json` — todo dia às 7h45, o resumo do painel "Hoje" no Telegram
-  ([seção própria](#resumo-diário-no-telegram)).
+  ([seção própria](#resumo-diário-no-telegram));
+- `workflows/vito-telegram-extracao.json` — a cada minuto, as conversas do **bot da oficina** no
+  Telegram vão para a mesma extração ([seção própria](#conversas-do-telegram-com-clientes)).
 
 Workflow que recebe uma conversa de WhatsApp, pede à IA os eventos do contrato (§8.1/§8.2) e envia
 cada um ao endpoint `POST /api/agent-events` do sistema. O **provedor é escolhido por conversa**
@@ -168,3 +170,32 @@ Para testar sem esperar as 7h45: abra o workflow e use **Execute workflow**. (Pe
 `n8n execute` não serve: ele exige um gatilho manual.)
 
 ![Resumo diário executado no n8n](../../docs/screenshots/n8n/04-resumo-diario.png)
+
+## Conversas do Telegram com clientes
+
+O cliente conversa com o **bot da oficina** (separado do bot do resumo). Quem recebe as mensagens é
+o **sistema na Vercel** (`/api/telegram/webhook`), que precisa de endereço público com HTTPS — o
+n8n local não precisa ficar exposto. O sistema responde só o que é seguro (D57) e guarda a conversa;
+o n8n só leva as conversas prontas para a extração:
+
+```mermaid
+flowchart LR
+  C[Cliente no Telegram] -->|webhook + segredo| S[Sistema /api/telegram/webhook]
+  S -->|resposta segura: texto fixo ou dado do sistema| C
+  S -->|aviso| D[Dono: bot do resumo]
+  D -->|responde pela ficha| S
+  N[n8n a cada minuto] -->|GET conversas prontas| S
+  N -->|mesmo webhook de extração| X[vito-conversa → IA → /api/agent-events]
+  N -->|confirma| S
+```
+
+Configuração:
+1. **@BotFather** → `/newbot` (o bot da oficina). Token em `.env.local`:
+   `TELEGRAM_CLIENTE_BOT_TOKEN`; segredo do webhook (aleatório) em `TELEGRAM_WEBHOOK_SECRET`;
+   opcionais `SHOP_NAME`, `SHOP_ADDRESS`, `SHOP_HOURS` (os padrões dizem que são fictícios).
+2. As mesmas variáveis na Vercel (produção), mais `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID` do bot
+   do resumo, para avisar o dono de mensagens novas.
+3. Registrar o webhook e a descrição do bot:
+   `npx tsx --env-file=.env.local scripts/telegram-webhook.ts`
+4. Importar e publicar `vito-telegram-extracao.json` (`--id=vitoTelegramExtracao1`), que usa a
+   credencial *Sistema Virtù (Bearer)* e o webhook do workflow de extração desta mesma instância.

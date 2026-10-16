@@ -79,12 +79,13 @@ Detalhes em [`docs/AGENTES_IA.md`](docs/AGENTES_IA.md). Resumo:
 |---|---|
 | T1 — Workflow n8n de extração, com prints | feito: Gemini e Ollama de ponta a ponta ([`infra/n8n`](infra/n8n/README.md)) |
 | T12 — Ollama × Gemini com números | feito, com conjunto de validação e as estratégias testadas (D49, D52, D53) |
+| Canal Telegram cliente ↔ oficina | feito (D57): o Vito responde sozinho só horário, endereço, saudação e o agendamento que está no sistema; o resto vai para o dono, que responde pela ficha. Conversas passam pela mesma extração do WhatsApp |
 | T10 — Modo escuro | feito, junto com o novo visual "Amigável" escolhido pelo dono (D55): tema do aparelho por padrão, botão sol/lua, contraste validado pelo axe nos dois temas |
 | T2 — Resumo diário + `GET /api/agenda/hoje` | feito: às 7h45 o dono recebe no Telegram atrasados, agenda, orçamentos parados e revisões pendentes, com o link do painel; mensagem montada e testada no sistema (D54) |
 
 ## Principais decisões
 
-Todas em [`DECISOES.md`](DECISOES.md) (D1–D55), com contexto, opções e motivo. As que mais pesaram:
+Todas em [`DECISOES.md`](DECISOES.md) (D1–D57), com contexto, opções e motivo. As que mais pesaram:
 
 - **D2 — Next.js + Vercel + Neon + Drizzle:** o vinext do original é beta e o limite de 10 ms de
   CPU do Workers gratuito é risco para renderizar no servidor; Next usa a mesma estrutura `app/`,

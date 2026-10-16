@@ -79,6 +79,24 @@ tipos TypeScript e o JSON Schema pedido à IA saem do mesmo zod).
 - Tudo que o agente grava fica no `audit_log` com o evento de origem: a ficha mostra "veio do Vito"
   com a evidência.
 
+## Canal Telegram: o Vito conversando com o cliente (D57)
+
+Além das conversas de WhatsApp lidas pela extração, o cliente pode falar com o **bot da oficina no
+Telegram**. Ali o Vito **responde sozinho só o que é seguro**, sem IA gerando texto:
+
+| O cliente pergunta | O Vito responde com |
+|---|---|
+| "Oi", "bom dia" | saudação + o que ele pode informar |
+| horário de funcionamento | texto fixo da oficina (`SHOP_HOURS`) |
+| endereço | texto fixo da oficina (`SHOP_ADDRESS`) |
+| "como está meu agendamento?" | o próximo agendamento **que está no sistema** (serviço, dia, hora, confirmado ou não) |
+| qualquer outra coisa (preço, estoque, "posso ir hoje?", "me dá desconto") | "Recebemos sua mensagem! O dono vai te responder por aqui" + aviso ao dono |
+
+A intenção é reconhecida por regras de código (`lib/telegram/autoreply.ts`, com testes de
+manipulação); a IA continua só na extração. No primeiro contato o bot avisa que é um assistente
+automático e pede "Compartilhar meu telefone" — só o telefone do próprio usuário liga a conversa ao
+cadastro. O dono vê a conversa na ficha e responde por lá.
+
 ## Como isso ajuda o gestor
 
 - **Menos digitação:** cliente, carro, orçamento e agendamento já aparecem na ficha depois da conversa.
