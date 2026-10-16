@@ -37,6 +37,7 @@ for (const theme of THEMES)
         test.setTimeout(180_000);
         await login(page);
         const pages: [string, string][] = [
+          ["/painel", "00-painel"],
           ["/hoje", "01-hoje"],
           ["/clientes", "02-clientes"],
           ["/clientes/novo", "04-novo-cliente"],
@@ -97,7 +98,7 @@ for (const theme of THEMES)
 test("sem rolagem horizontal em 320 px (reflow, WCAG 1.4.10)", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 700 });
   await login(page);
-  for (const path of ["/hoje", "/clientes"]) {
+  for (const path of ["/painel", "/hoje", "/clientes"]) {
     await page.goto(path);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth > window.innerWidth,

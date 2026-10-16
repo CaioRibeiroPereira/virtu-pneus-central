@@ -21,6 +21,7 @@
   --border: #e8e2d6; /* contorno decorativo de cartões */
   --border-input: #77796b; /* bordas de campos e checkbox (≥ 3:1) */
   --danger: #b42318;
+  --chart: #2f5a0a; /* barras dos gráficos do Painel */
   --danger-bg: #fde8e5;
   --warning-text: #8a4b00;
   --warning-bg: #fdefd6;
@@ -62,6 +63,7 @@
   --border: #2c3524;
   --border-input: #737e6a;
   --danger: #ff8f85;
+  --chart: #a4dc45;
   --danger-bg: #3a1915;
   --warning-text: #f6bd5c;
   --warning-bg: #3a2a11;
@@ -255,7 +257,7 @@ a {
 }
 .bottom-nav ul {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 4px;
   margin: 0;
   padding: 0;
@@ -272,7 +274,7 @@ a {
   border-radius: 16px;
   color: var(--sidebar-text);
   text-decoration: none;
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 700;
 }
 .bottom-nav a[aria-current="page"] {
@@ -970,4 +972,160 @@ details > summary::-webkit-details-marker {
 /* Lista que também é seção: mantém o espaço de seção (o .stack zera a margem). */
 .stack.section {
   margin-top: 28px;
+}
+
+/* ---------- Painel financeiro e funil (D61) ---------- */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.kpi-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-weight: 650;
+  font-size: 0.9375rem;
+}
+.kpi-value {
+  font-size: 1.625rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.kpi-note {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+.delta-up {
+  color: var(--accent-text);
+  font-weight: 700;
+}
+.delta-down {
+  color: var(--danger);
+  font-weight: 700;
+}
+.dash-grid {
+  display: grid;
+  align-items: start;
+  gap: 16px;
+  margin-top: 8px;
+}
+@media (min-width: 1100px) {
+  .dash-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.dash-grid > .section {
+  margin-top: 0;
+}
+.funnel {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.funnel-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+  min-height: 44px;
+  color: var(--text);
+  text-decoration: none;
+}
+.funnel-label {
+  font-weight: 700;
+}
+.funnel-track,
+.hbar-track {
+  display: block;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+.funnel-bar,
+.hbar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--chart);
+}
+.funnel-row:hover .funnel-label {
+  text-decoration: underline;
+}
+.funnel-detail {
+  font-size: 0.875rem;
+}
+.month-chart {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  align-items: end;
+  height: 220px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.month-chart li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+}
+.month-track {
+  display: flex;
+  align-items: flex-end;
+  flex: 1;
+  width: 100%;
+  max-width: 48px;
+}
+.month-bar {
+  display: block;
+  width: 100%;
+  border-radius: 8px 8px 0 0;
+  background: var(--chart);
+}
+.month-value {
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+}
+.month-label {
+  font-weight: 650;
+  color: var(--text-muted);
+}
+.hbars {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.hbar-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.loss-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }

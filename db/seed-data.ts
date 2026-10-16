@@ -539,6 +539,135 @@ export function buildSeed(today: DateOnly): SeedData {
     agentEventId: sofiaEvent,
   });
 
+  // ---------- Histórico de vendas para o Painel (D61) ----------
+  // Vendas dos últimos meses (orçamento aprovado → serviço feito, pós-venda já feito), recusas com
+  // motivo e contatos no começo do funil. Telefones (19) 90000-03NN: fora da faixa usada pelas
+  // conversas do simulador. Nenhum item aqui cria ação para hoje: pós-venda concluído e retorno
+  // (R3) só daqui a mais de uma semana.
+  let historySeq = 0;
+  const pastCustomer = (
+    name: string,
+    fields: Partial<Insert<typeof s.customers>> = {},
+  ): Insert<typeof s.customers> & { id: string } => {
+    historySeq += 1;
+    const phone = normalizePhone(`(19) 90000-03${String(historySeq).padStart(2, "0")}`)!;
+    return customer(name, {
+      stage: "cliente",
+      phoneE164: phone.e164,
+      phoneDisplay: phone.display,
+      createdAt: at(-200, "10:00"),
+      ...fields,
+    });
+  };
+  function pastSale(
+    c: { id: string },
+    offset: number,
+    type: Insert<typeof s.services>["type"],
+    description: string,
+    total: number,
+    employeeId: string,
+  ) {
+    data.quotes.push({
+      id: randomUUID(),
+      customerId: c.id,
+      description,
+      total,
+      status: "aprovado",
+      sentAt: at(offset - 4, "10:00"),
+      respondedAt: at(offset - 2, "16:00"),
+    });
+    const serviceId = randomUUID();
+    data.services.push({
+      id: serviceId,
+      customerId: c.id,
+      type,
+      description,
+      performedAt: at(offset, "15:00"),
+      total,
+      employeeId,
+    });
+    data.tasks.push({
+      id: randomUUID(),
+      customerId: c.id,
+      type: "pos_venda",
+      title: "Pós-venda",
+      reason: "Perguntar se ficou tudo certo com o serviço",
+      dueDate: day(offset + 7),
+      status: "concluida",
+      completedAt: at(offset + 7, "10:00"),
+      serviceId,
+      autoRule: "R2",
+      source: "sistema",
+    });
+  }
+  function refusedQuote(
+    c: { id: string },
+    offset: number,
+    description: string,
+    total: number,
+    reason: string,
+  ) {
+    data.quotes.push({
+      id: randomUUID(),
+      customerId: c.id,
+      description,
+      total,
+      status: "recusado",
+      sentAt: at(offset - 3, "10:00"),
+      respondedAt: at(offset, "17:00"),
+      lossReason: reason,
+    });
+  }
+
+  const eduardo = pastCustomer("Eduardo Lima");
+  pastSale(eduardo, -12, "troca_pneus", "Troca de 4 pneus 205/55 R16", 1960, ze);
+  pastSale(eduardo, -95, "alinhamento", "Alinhamento + balanceamento", 150, rafael);
+  const gabriela = pastCustomer("Gabriela Moraes", { origin: "instagram" });
+  pastSale(gabriela, -14, "alinhamento", "Alinhamento e balanceamento", 150, rafael);
+  pastSale(gabriela, -70, "troca_pneus", "Troca de 2 pneus 185/65 R15", 780, ze);
+  refusedQuote(gabriela, -30, "4 pneus run-flat 225/45 R18", 3600, "Achou caro");
+  const henrique = pastCustomer("Henrique Castro (frota)", { origin: "indicacao" });
+  pastSale(henrique, -25, "troca_pneus", "Troca de 6 pneus 275/80 R22.5 (caminhão)", 9600, ze);
+  pastSale(henrique, -120, "troca_pneus", "Troca de 4 pneus 275/80 R22.5", 6400, ze);
+  refusedQuote(henrique, -10, "8 pneus de tração para a frota", 12800, "Prazo de entrega");
+  const isabela = pastCustomer("Isabela Prado", { origin: "google" });
+  pastSale(isabela, -40, "reparo", "Reparo de furo", 40, ze);
+  pastSale(isabela, -48, "balanceamento", "Balanceamento das 4 rodas", 80, rafael);
+  const joao = pastCustomer("João Victor Melo");
+  pastSale(joao, -60, "troca_pneus", "Troca de 4 pneus 195/55 R16", 1720, ze);
+  pastSale(joao, -150, "rodizio", "Rodízio de pneus", 60, rafael);
+  const larissa = pastCustomer("Larissa Teixeira", { origin: "balcao" });
+  pastSale(larissa, -33, "troca_pneus", "Troca de 4 pneus 215/50 R17", 3280, ze);
+  pastSale(larissa, -110, "alinhamento", "Alinhamento", 90, rafael);
+  const marcelo = pastCustomer("Marcelo Antunes");
+  pastSale(marcelo, -85, "troca_pneus", "Troca de 4 pneus 225/45 R18", 3960, ze);
+  pastSale(marcelo, -140, "balanceamento", "Balanceamento das 4 rodas", 80, rafael);
+  refusedQuote(
+    pastCustomer("Natália Freitas", { stage: "perdido", lossReason: "Achou caro" }),
+    -20,
+    "4 pneus 205/60 R16",
+    2100,
+    "Achou caro",
+  );
+  refusedQuote(
+    pastCustomer("Otávio Ramos", { stage: "perdido", lossReason: "Comprou em outra loja" }),
+    -45,
+    "4 pneus 185/60 R15",
+    1840,
+    "Comprou em outra loja",
+  );
+  // Começo do funil: quem só conversou até agora.
+  for (const [name, stage, offset, summary] of [
+    ["Pedro Henrique Dias", "novo_contato", -4, "Perguntou se a loja trabalha com pneus de moto."],
+    ["Rita Souza", "novo_contato", -6, "Quer saber o preço do alinhamento."],
+    ["Sérgio Matos", "novo_contato", -9, "Pediu o endereço e o horário de sábado."],
+    ["Tânia Reis", "em_negociacao", -5, "Comparando preços de 4 pneus aro 15."],
+    ["Ulisses Prado", "em_negociacao", -8, "Quer parcelar 4 pneus aro 17; ficou de pensar."],
+  ] as const) {
+    const lead = pastCustomer(name, { stage, createdAt: at(offset, "09:00") });
+    interaction(lead.id, offset, summary, { source: "gestor" });
+  }
+
   // ---------- Fila de revisão ----------
 
   // Alto impacto: aprovação de orçamento sempre passa pelo gestor (D6).

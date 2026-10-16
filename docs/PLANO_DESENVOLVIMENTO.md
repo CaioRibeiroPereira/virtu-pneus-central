@@ -501,51 +501,7 @@ Confirmar nas páginas oficiais que os planos continuam gratuitos e sem cartão,
 
 ---
 
-## 16. Prompts por fase (colar no Claude Code)
-
-**Fase 0**
-```
-Leia PLANO_DESENVOLVIMENTO.md (§0, §2, §4, §5, §14) e docs/DIAGNOSTICO.md. Execute a Fase 0:
-1. Prepare o projeto para um repositório próprio: só a pasta do sistema, primeiro commit "chore: snapshot original (virtuvito/projetos@1609d51)" sem nenhuma alteração.
-2. Migre de vinext/Workers/D1 para Next.js 16.x (≥ 16.3.8) com Drizzle + Neon, removendo tudo listado em §5. Mantenha globals.css e o visual por enquanto.
-3. Crie .env.example, scripts do §13, ESLint + Prettier, DECISOES.md (D1–D13).
-4. Crie uma página de saúde que consulte o banco e me guie no deploy na Vercel pela CLI.
-Pare quando a URL estiver no ar e me mostre o resumo.
-```
-
-**Fase 1**
-```
-Execute a Fase 1 conforme §6, §7.3 e §13 do PLANO_DESENVOLVIMENTO.md: schema Drizzle completo, migrations, seed fictício coerente e relativo a hoje (≈15 clientes cobrindo todas as regras R1–R4, itens atrasados, para hoje, próximos dias, provisório e itens na fila de revisão), lib/dates, lib/phone, lib/search com testes Vitest. Commits pequenos. Pare e me mostre o resumo.
-```
-
-**Fase 2**
-```
-Execute a Fase 2 conforme §7, §8, §11 e §13: autenticação do gestor, lib/agent/schema.ts, lib/agent/process.ts, POST /api/agent-events, regras automáticas e montagem do "Hoje" em lib/rules, auditoria. Testes de integração com PGlite cobrindo todos os casos do §13. Explique o pipeline do §8.3 de forma que eu consiga defender. Pare e me mostre o resumo.
-```
-
-**Fase 3**
-```
-Execute a Fase 3 conforme §9 (Login, Hoje, Clientes, Novo/editar, Ficha) e §10: layout mobile-first com navegação inferior/lateral, tokens de cor, componentes acessíveis. Use Server Components e Server Actions; lógica só em lib/. Rode axe nas telas prontas. Pare e me mostre screenshots em 375 e 1280 px.
-```
-
-**Fase 4**
-```
-Execute a Fase 4 conforme §9 (Revisão e Simulador) e §12.3 (conversas fictícias como presets em simulator/presets). O simulador deve chamar o endpoint pelo servidor, sem expor o token. Escreva os testes E2E e de acessibilidade do §13 e corrija o que falhar. Pare e me mostre o resumo.
-```
-
-**Fase 5**
-```
-Execute a Fase 5: §12 (n8n) se houver tempo, passe final do checklist do §10, Lighthouse nas telas principais, deploy final (§14). Escreva README.md, docs/AGENTES_IA.md (fluxo com diagrama Mermaid, contrato, exemplos de payload, como ajuda o gestor) e RESUMO_ENTREGA.md (§17). Confira que nenhum segredo está no repositório.
-```
-
-**Extras (só com tudo acima pronto e no ar)**
-```
-Releia o §19 do PLANO_DESENVOLVIMENTO.md e confirme que a regra de entrada está cumprida (MUST pronto, testes passando, deploy ok). Se estiver, faça o próximo item da lista ainda não marcado, um por vez, com commit próprio e respeitando o limite de ~1h30 por item. Ao final de cada um, atualize RESUMO_ENTREGA.md e me diga qual seria o próximo.
-```
-
----
-
-## 17. Entregáveis (checklist final)
+## 16. Entregáveis (checklist final)
 
 - [ ] **Código** no repositório (privado, com acesso para a Virtù), histórico de commits limpo.
 - [ ] **Link** do sistema funcionando + senha da demo no README.
@@ -556,7 +512,7 @@ Releia o §19 do PLANO_DESENVOLVIMENTO.md e confirme que a regra de entrada est�
 
 ---
 
-## 18. Riscos
+## 17. Riscos
 
 | Risco | Mitigação |
 |---|---|
@@ -569,7 +525,7 @@ Releia o §19 do PLANO_DESENVOLVIMENTO.md e confirme que a regra de entrada est�
 
 ---
 
-## 19. Se der tempo, faça
+## 18. Se der tempo, faça
 
 **Regra de entrada:** só comece um item desta lista quando **todo o MUST (§3) estiver pronto, testado e no ar**, e os testes estiverem passando. Faça na ordem abaixo, um item por vez, com commit próprio. Se um item passar de ~1h30 sem terminar, pare, reverta para o último commit estável e registre no `DECISOES.md`.
 

@@ -22,7 +22,7 @@ servia para dados reais. O diagnóstico completo está em [`docs/DIAGNOSTICO.md`
 | Datas | histórico em UTC; demo "congelada" em 24/09 | fuso de São Paulo em todo lugar; seed relativo a hoje + "Reiniciar demonstração" |
 | Acessibilidade | Lighthouse 89–95; **597** falhas de contraste no axe | Lighthouse **100** em todas as telas; axe **sem violações** em 375 e 1280 px, nos temas **claro e escuro**; reflow em 320 px |
 | Celular | tabela e kanban rolando de lado; menu que não fecha | barra inferior, cards, alvos de 44 px |
-| Testes | nenhum | 279 de unidade/integração, 13 E2E com axe, banco de testes da IA, teste exploratório como usuário |
+| Testes | nenhum | 287 de unidade/integração, 13 E2E com axe, banco de testes da IA, teste exploratório como usuário |
 
 Prints: antes em [`docs/diagnostico-screenshots/`](docs/diagnostico-screenshots/), depois em
 [`docs/screenshots/depois/`](docs/screenshots/depois/) (375 e 1280 px de cada tela).
@@ -31,7 +31,7 @@ Prints: antes em [`docs/diagnostico-screenshots/`](docs/diagnostico-screenshots/
 
 | Tipo | Ferramenta | Resultado |
 |---|---|---|
-| Unidade + integração | Vitest; Postgres em memória (PGlite) com as **migrações reais** | **279 passando**: datas/fuso, telefone, busca, auth, regras R1–R4, endpoint (401/413/415/422, idempotência, matching, decisão, conflito com edição humana, eventos simultâneos), revisão, extração da IA, estoque, Telegram, formulários e fluxos do teste como usuário |
+| Unidade + integração | Vitest; Postgres em memória (PGlite) com as **migrações reais** | **287 passando**: datas/fuso, telefone, busca, auth, regras R1–R4, endpoint (401/413/415/422, idempotência, matching, decisão, conflito com edição humana, eventos simultâneos), revisão, extração da IA, estoque, Telegram, formulários e fluxos do teste como usuário |
 | E2E | Playwright (Chrome) | **13 passando** localmente e **contra a produção**: concluir ação → linha do tempo; simulador → aplica, reenvio ignorado, alto impacto → revisão → aprovar → ficha; serviço feito pelo Vito → baixa de estoque |
 | Teste como usuário | Playwright num build de produção, tela por tela, com erros de propósito | ~25 achados, todos corrigidos com teste — ex.: "1.840" virava R$ 1,84; formulário perdia as escolhas após um erro; data passada derrubava a página ([AUDITORIA, etapa 15](docs/AUDITORIA.md), D60) |
 | Acessibilidade automática | axe-core (WCAG 2.0/2.1/2.2 A e AA) | **0 violações** em login, Hoje, Clientes, Ficha, Novo/Editar cliente, Mais, Revisão, Simulador, Conversas, Estoque, produto, Serviços, Equipe e funcionário, em 375 e 1280 px, nos temas claro e escuro; também na Revisão em modo de correção e nas páginas de "não encontrado" |
@@ -89,12 +89,13 @@ Detalhes em [`docs/AGENTES_IA.md`](docs/AGENTES_IA.md). Resumo:
 | T12 — Ollama × Gemini com números | feito, com conjunto de validação e as estratégias testadas (D49, D52, D53) |
 | Canal Telegram cliente ↔ oficina | feito (D57): o Vito responde sozinho só horário, endereço, saudação e o agendamento que está no sistema; o resto vai para o dono, que responde pela ficha. Conversas passam pela mesma extração do WhatsApp |
 | Estoque, tabela de serviços e equipe | feito (D58): baixa automática e atômica ao registrar serviço — inclusive o serviço feito avisado pelo Vito, com a baixa sugerida e confirmada pelo gestor na Revisão (D59); estoque nunca negativo; falta de item desfaz o serviço, histórico de movimentações, alerta de estoque baixo; tabela de preços que preenche orçamentos; responsável nas ações e serviços |
+| Painel financeiro com funil de vendas (tela inicial) | feito (D61): faturamento, ticket médio, aprovação, perdas e valor em aberto por período, comparados com o período anterior; funil acumulado com conversão e valor parado por etapa; gráficos dos últimos 6 meses, por serviço e motivos de perda |
 | T10 — Modo escuro | feito, junto com o novo visual "Amigável" escolhido pelo dono (D55): tema do aparelho por padrão, botão sol/lua, contraste validado pelo axe nos dois temas |
 | T2 — Resumo diário + `GET /api/agenda/hoje` | feito: às 7h45 o dono recebe no Telegram atrasados, agenda, orçamentos parados e revisões pendentes, com o link do painel; mensagem montada e testada no sistema (D54) |
 
 ## Principais decisões
 
-Todas em [`DECISOES.md`](DECISOES.md) (D1–D60), com contexto, opções e motivo. As que mais pesaram:
+Todas em [`DECISOES.md`](DECISOES.md) (D1–D61), com contexto, opções e motivo. As que mais pesaram:
 
 - **D2 — Next.js + Vercel + Neon + Drizzle:** o vinext do original é beta e o limite de 10 ms de
   CPU do Workers gratuito é risco para renderizar no servidor; Next usa a mesma estrutura `app/`,

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarCheck,
+  ChartColumn,
   Inbox,
   Menu,
   MessagesSquare,
@@ -46,6 +47,7 @@ export function SidebarNav({
 }) {
   const pathname = usePathname();
   const items: Item[] = [
+    { href: "/painel", label: "Painel", icon: ChartColumn },
     { href: "/hoje", label: "Hoje", icon: CalendarCheck },
     { href: "/clientes", label: "Clientes", icon: Users },
     { href: "/revisao", label: "Revisão", icon: Inbox, count: reviewCount },
@@ -84,7 +86,7 @@ export function SidebarNav({
   );
 }
 
-/** Barra inferior (celular): os 4 destinos mais usados ao alcance do polegar. */
+/** Barra inferior (celular): os 5 destinos mais usados ao alcance do polegar. */
 export function BottomNav({
   reviewCount,
   conversationCount = 0,
@@ -94,6 +96,7 @@ export function BottomNav({
 }) {
   const pathname = usePathname();
   const items: Item[] = [
+    { href: "/painel", label: "Painel", icon: ChartColumn },
     { href: "/hoje", label: "Hoje", icon: CalendarCheck },
     { href: "/clientes", label: "Clientes", icon: Users },
     { href: "/revisao", label: "Revisão", icon: Inbox, count: reviewCount },

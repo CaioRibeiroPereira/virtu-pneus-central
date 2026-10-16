@@ -792,3 +792,15 @@ npm run db:migrate                                           # 0007: motivo "dat
 - axe nas partes novas (Revisão em modo de correção, recusa com motivo, novo veículo com erro, páginas de não encontrado): 16 varreduras, 2 temas × 375/1280, **0 violações**.
 - Os próprios testes E2E tinham dois pontos frágeis, corrigidos: a captura de "Editar cliente" saía no meio da navegação (com a altura da ficha, um vazio enorme no fim) e o login esperava o Hoje por só 5 s (com o Neon lento, a primeira carga passa disso). As capturas de `docs/screenshots/depois/` foram regeradas com a demo limpa.
 - **Produção** (deploy de `8dbe8df`): os 13 E2E passaram. Na primeira rodada, 3 testes de acessibilidade caíram por rede da máquina (`ERR_NAME_NOT_RESOLVED`) e pelo limite de 60 s do teste que percorre ~16 telas com axe e captura. Medi o tempo das páginas na produção (Hoje ~2,6 s; demais 0,6–1,6 s, normal), dei 180 s a esse teste e repeti: 10/10.
+
+---
+
+## Etapa 16 — Painel financeiro com funil de vendas (16/10/2026)
+
+**Objetivo:** pedido do Caio: a página inicial passa a ser um painel financeiro com funil de vendas. Decisão D61.
+
+- `lib/finance/dashboard.ts`: períodos, números, funil acumulado, meses, tipos e motivos de perda. O cálculo é uma função pura e a leitura do banco fica separada.
+- `app/(app)/painel/page.tsx`: tela com filtro de período pela URL (funciona sem JavaScript); a raiz, o login e o logo levam ao Painel; menu lateral e barra do celular ganharam "Painel".
+- Na revisão visual: os valores sobre as barras dos meses se sobrepunham em 375 px (passaram para "6,5 mil", com o valor exato para leitor de tela) e o cartão do gráfico esticava até a altura do funil.
+- Seed: 14 clientes a mais (vendas antigas, perdidos e contatos novos), sem mudar o Hoje (os testes do Hoje continuam iguais).
+- Testes: `tests/unit/dashboard.test.ts` (8) e o Painel no axe (2 temas × 375/1280) e no reflow de 320 px. Ao todo, 287 de unidade e integração e 13 E2E passando.

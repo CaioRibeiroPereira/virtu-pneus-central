@@ -27,7 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         Pular para o conteúdo
       </a>
       <aside className="sidebar">
-        <Link href="/hoje" className="brand">
+        <Link href="/painel" className="brand">
           virtù<span>.</span>
         </Link>
         <SidebarNav
@@ -46,7 +46,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </aside>
       <div>
         <header className="topbar">
-          <Link href="/hoje" className="brand">
+          <Link href="/painel" className="brand">
             virtù<span>.</span>
           </Link>
           <ThemeToggle />

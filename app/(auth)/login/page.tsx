@@ -13,7 +13,7 @@ export default async function LoginPage({
 }) {
   const { next } = await searchParams;
   // Já entrou: vai direto para o sistema (ou para onde ia).
-  if (await hasSession()) redirect(next ? safeNextPath(next) : "/hoje");
+  if (await hasSession()) redirect(next ? safeNextPath(next) : "/painel");
   return (
     <main className="page" style={{ maxWidth: 440, paddingTop: "12vh" }}>
       <p className="brand" style={{ color: "var(--text)", marginBottom: 16 }}>

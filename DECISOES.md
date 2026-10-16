@@ -391,3 +391,19 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
 - **Hoje:** o anel e "N contatos para fazer" contam só as ações. O agendamento confirmado do dia contava como contato e nunca podia ser concluído, então o anel não chegava a 100%. Para horário já confirmado, o WhatsApp abre um lembrete ("Te esperamos hoje às…") em vez de pedir confirmação de novo.
 - **Telegram:** o n8n confirmava o lote com o horário da última mensagem em milissegundos, e o Postgres guarda microssegundos. A última mensagem do cliente nunca ficava "extraída", e o mesmo lote ia para o Gemini a cada minuto. O limite agora é o fim daquele milissegundo.
 - Fora de escopo, por decisão: editar ou excluir orçamento, serviço e atendimento já registrados (o caminho é registrar de novo; a auditoria guarda tudo); "cancelar" uma próxima ação manual (concluir resolve); nomes repetidos na tabela de serviços são permitidos.
+
+**D61 — Painel financeiro com funil de vendas como página inicial** (16/10)
+- Contexto: o Caio pediu que a tela inicial fosse um painel financeiro com funil de vendas, no lugar do Hoje. O plano original deixava gráficos de fora (§2); o pedido do dono muda isso.
+- **O Hoje não sumiu:** fica logo abaixo do Painel no menu (e na barra do celular, que passou a ter 5 botões), e o Painel tem o atalho "Ver o que fazer hoje". O resumo diário do Telegram continua apontando para o Hoje.
+- **Números do período** (este mês, mês passado, 30 dias, ano; dia da loja):
+  - faturamento = soma dos serviços feitos (o registro da oficina; não há módulo de caixa);
+  - serviços feitos e ticket médio (só os serviços com valor);
+  - orçamentos enviados e taxa de aprovação sobre os **decididos** no período;
+  - valor perdido em recusas;
+  - o que está em aberto agora;
+  - mercadoria em estoque (preço de venda × quantidade dos produtos ativos).
+- **Comparação justa:** "este mês" compara com os mesmos dias do mês anterior. Comparar com o mês anterior inteiro faria todo começo de mês parecer queda.
+- **Funil acumulado:** quantos clientes chegaram a cada etapa (estão nela ou além), com a conversão de uma etapa para a outra e o valor em orçamentos abertos parado em cada uma. É uma foto de hoje, porque a etapa não guarda histórico de quando mudou. Cada etapa abre a lista de clientes filtrada.
+- **Gráficos sem biblioteca** (barras em CSS): faturamento dos últimos 6 meses, por tipo de serviço e motivos de perda. As barras são decorativas; os valores estão em texto, também para leitor de tela.
+- Cálculo numa função pura (`lib/finance/dashboard.ts`) com testes de unidade: períodos, virada de mês, fuso, aprovação, funil e meses.
+- Demo: vendas fictícias dos últimos 5 meses, recusas com motivo e contatos no começo do funil, sem criar nenhuma ação para hoje (pós-venda já concluído; retorno só daqui a mais de uma semana).

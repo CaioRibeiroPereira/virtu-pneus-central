@@ -28,6 +28,7 @@ de IA). Reconstrução do protótipo do desafio do Grupo Virtù, com o diagnóst
 
 | Tela | Para quê |
 |---|---|
+| **Painel** (tela inicial) | Faturamento, serviços, ticket médio, aprovação de orçamentos, perdas e valor em aberto por período, funil de vendas com conversão por etapa e gráficos dos últimos 6 meses |
 | **Hoje** | Ações vencidas e do dia (follow-up de orçamento, pós-venda, retorno, confirmar agendamento), agenda e orçamentos aguardando — com WhatsApp/ligar em um toque |
 | **Clientes** | Busca tolerante (sem acento, telefone por dígitos, placa sem traço), ficha com veículos, orçamentos, linha do tempo e o que veio do Vito. Na ficha: registrar atendimento, próxima ação, orçamento (aprovar/recusar com motivo), serviço, agendamento (confirmar/cancelar) e veículo; a etapa do funil acompanha esses fatos |
 | **Revisão** | O que a IA não pôde aplicar sozinha: confiança baixa, cliente desconhecido, dinheiro, conflito com edição do gestor — aprovar, corrigir ou rejeitar |
