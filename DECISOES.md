@@ -308,3 +308,8 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
   - **Fonte:** Plus Jakarta Sans pelo `next/font`, baixada no build e servida pelo próprio site (a CSP `font-src 'self'` continua valendo).
 - Acessibilidade: o axe roda agora nos **dois temas** × 375/1280 px, nas 7 telas, com 0 violações. Ele achou dois problemas no escuro, já corrigidos: o hover do botão verde clareava (4,28:1) e passou a escurecer; e o verde de botão era usado como texto (3,56:1) em 3 lugares, que passaram para `--accent-text`.
 - Correção de diagnóstico: eu tinha dito que a barra lateral "não ia até o fim da página". Ela é fixa e sempre cobre a altura da tela; o corte aparecia só nos prints de página inteira.
+
+**D56 — Simulador fora do menu, como ferramenta de teste** (15/10)
+- Contexto: o simulador ocupava um lugar no menu principal, ao lado de Hoje, Clientes e Revisão, mas não é algo que o dono use no dia a dia. O Caio apontou que isso não faz sentido.
+- Escolha: no menu, "Simulador" virou "Mais". Em **Mais → Ferramentas de teste**, o link abre o simulador numa **nova aba**. O endereço `/simulador` continua, atrás da senha, e o README traz o link direto.
+- Motivo: o avaliador continua testando sem instalar nada (D8), e o menu do dono fica só com o que ele usa.

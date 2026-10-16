@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarCheck, Inbox, Menu, MessageSquareText, Users } from "lucide-react";
+import { CalendarCheck, Inbox, Menu, Users } from "lucide-react";
 
 type Item = { href: string; label: string; icon: React.ElementType; count?: number };
 
@@ -26,7 +26,7 @@ export function SidebarNav({ reviewCount }: { reviewCount: number }) {
     { href: "/hoje", label: "Hoje", icon: CalendarCheck },
     { href: "/clientes", label: "Clientes", icon: Users },
     { href: "/revisao", label: "Revisão", icon: Inbox, count: reviewCount },
-    { href: "/simulador", label: "Simulador", icon: MessageSquareText },
+    { href: "/mais", label: "Mais", icon: Menu },
   ];
   return (
     <nav aria-label="Menu principal">

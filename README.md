@@ -9,12 +9,15 @@ de IA). Reconstrução do protótipo do desafio do Grupo Virtù, com o diagnóst
 
 - **Link:** https://virtu-pneus-central.vercel.app
 - **Senha do gestor:** `virtu-aro-rodizio-485`
+- **Simulador de conversas (teste):** https://virtu-pneus-central.vercel.app/simulador — ferramenta
+  de demonstração, fora do menu do dono (D56). Também abre em **Mais → Ferramentas de teste**, numa
+  nova aba. Use as duas abas lado a lado: o simulador numa, o sistema na outra.
 - Dados 100% fictícios. No **Simulador → Reiniciar demonstração** os dados voltam ao estado
   inicial, com datas relativas ao dia de hoje.
 - Roteiro sugerido (5 min):
   1. **Hoje:** ações do dia, agendamentos e orçamentos parados.
-  2. **Simulador:** envie "Cliente novo pede orçamento de 4 pneus" e veja o cliente provisório e o
-     follow-up aparecerem.
+  2. **Simulador** (outra aba): envie "Cliente novo pede orçamento de 4 pneus"; na aba do sistema,
+     atualize e veja o cliente provisório e o follow-up aparecerem.
   3. Envie "Cliente aprova orçamento enviado há dias": como mexe com dinheiro, vai para a
      **Revisão**. Aprove por lá.
   4. Envie "A mesma conversa chega de novo" e veja que **nada duplica**.
@@ -28,7 +31,7 @@ de IA). Reconstrução do protótipo do desafio do Grupo Virtù, com o diagnóst
 | **Hoje** | Ações vencidas e do dia (follow-up de orçamento, pós-venda, retorno, confirmar agendamento), agenda e orçamentos aguardando — com WhatsApp/ligar em um toque |
 | **Clientes** | Busca tolerante (sem acento, telefone por dígitos, placa sem traço), ficha com veículos, orçamentos, linha do tempo e o que veio do Vito |
 | **Revisão** | O que a IA não pôde aplicar sozinha: confiança baixa, cliente desconhecido, dinheiro, conflito com edição do gestor — aprovar, corrigir ou rejeitar |
-| **Simulador** | 6 conversas fictícias que chamam o endpoint real dos agentes, sem precisar de IA |
+| **Simulador** (teste, fora do menu) | 6 conversas fictícias que chamam o endpoint real dos agentes, sem precisar de IA — em `/simulador` ou **Mais → Ferramentas de teste** |
 
 Regras automáticas (`lib/rules/`): orçamento sem resposta em 3 dias → follow-up (R1); serviço feito →
 pós-venda em 7 dias (R2) e retorno comercial em 180 dias (R3); agendamento → confirmar na véspera
