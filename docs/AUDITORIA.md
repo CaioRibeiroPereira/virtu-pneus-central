@@ -812,3 +812,15 @@ npm run db:migrate                                           # 0007: motivo "dat
 - `lib/telegram/close.ts` (despedida, registro e volta do Vito) + `closeTelegramAction` + botão na conversa. Decisão D62.
 - Simulador: "Encerrar conversa e enviar ao Vito" e a fala da oficina como "Loja (atendente)".
 - Teste de integração: dono em silêncio → encerrar → despedida enviada, conversa fora de "aguardando você" → a próxima pergunta recebe resposta do Vito; conversa inexistente → `not_found`.
+
+---
+
+## Etapa 18 — Conversas como app de mensagens (16/10/2026)
+
+- Tela `/conversas` refeita (D63): lista + conversa, `?chat=` na URL, atualização a cada 15 s (`components/auto-refresh.tsx`) e a variante `app` do `TelegramThread`.
+- Revisão visual com 3 conversas falsas (criadas no banco e apagadas em seguida; nada foi enviado ao Telegram):
+  - corrigido o nome "Contato (35)…" (agora mostra o nome do Telegram);
+  - horas com a data completa (agora hora curta);
+  - caixa de resposta escondida atrás do menu no celular;
+  - item marcado na lista do celular sem conversa aberta.
+- axe nos dois temas (375/1280): 0 violações. Testes: 289 de unidade e integração passando.

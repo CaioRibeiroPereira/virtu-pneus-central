@@ -418,3 +418,19 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
 - **WhatsApp:** o sistema não recebe as mensagens do WhatsApp (só abre o app com o texto pronto). O encerramento existe no **simulador**: o botão passou a se chamar "Encerrar conversa e enviar ao Vito", que é o que acontece no fim de um atendimento real. Em produção, quem faz esse envio é o n8n.
 - Também no simulador: as respostas do lado da oficina aparecem como **"Loja (atendente)"**, e não mais como Vito. Quem passa preço no WhatsApp é o atendente; o Vito só lê a conversa e nunca passa preço (D57).
 - Ajuste no mesmo dia, a pedido do Caio: as mensagens do Vito estavam "objetivas demais". Ficaram mais cordiais, sem prometer nada novo: boas-vindas, "tudo bem?", "Será um prazer receber você!" e "Já avisei o dono da oficina". A despedida também ficou mais calorosa. O cumprimento não usa mais "Contato", que é o rótulo do cadastro provisório criado pelo Vito, e não um nome.
+
+**D63 — Conversas no estilo de app de mensagens** (16/10)
+- Pedido do Caio: a tela Conversas deveria parecer um app de conversa, em que o atendente escolhe com quem falar, "tipo o Telegram".
+- **Computador:** lista à esquerda (nome, prévia da última mensagem, hora e um ponto vermelho para "aguardando você") e a conversa escolhida à direita. Ao abrir, a mais recente já vem aberta.
+- **Celular:** uma coisa de cada vez: a lista e, ao tocar, a conversa em tela cheia com o botão de voltar.
+- A escolha fica na URL (`/conversas?chat=…`): o "voltar" do celular funciona e dá para abrir uma conversa direto por link.
+- A conversa:
+  - balões: cliente à esquerda, você e o Vito à direita (o Vito com contorno tracejado);
+  - hora curta, como nos apps;
+  - abre já na última mensagem;
+  - Enter envia e Shift+Enter quebra a linha;
+  - botões Enviar e Encerrar conversa (D62);
+  - atalho para a ficha ou "Criar cadastro".
+- A tela se atualiza sozinha a cada 15 s (só com a aba visível), para a mensagem nova do cliente aparecer sem recarregar.
+- O nome mostrado ignora "Contato (19)…", que é o rótulo do cadastro provisório, e usa o nome do Telegram.
+- A ficha do cliente continua com a conversa no formato de cartão.

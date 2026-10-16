@@ -126,3 +126,8 @@ export async function listConversations(db: Db, perChat = 8): Promise<TelegramTh
 export async function conversationsNeedingReply(db: Db): Promise<number> {
   return (await listConversations(db, 20)).filter((c) => c.needsReply).length;
 }
+
+/** Mensagens de uma conversa, as mais recentes (tela Conversas, conversa aberta). */
+export async function chatMessages(db: Db, chatId: string, limit = 100): Promise<ThreadMessage[]> {
+  return (await messagesOf(db, [chatId], limit)).get(chatId) ?? [];
+}

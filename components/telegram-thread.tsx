@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect, useRef, useTransition } from "react";
 import { toast } from "sonner";
 import { CircleCheck, Send } from "lucide-react";
 import {
@@ -18,14 +18,25 @@ const AUTHOR: Record<string, string> = {
 
 export type ThreadMessage = { id: string; author: string; text: string; when: string };
 
-/** Conversa do Telegram na ficha + caixa para o dono responder (D57). */
+/**
+ * Conversa do Telegram + caixa para o dono responder (D57). `variant="app"` (tela Conversas): ocupa a
+ * altura da tela, como num app de mensagens, e Enter envia (Shift+Enter quebra a linha).
+ */
 export function TelegramThread({
   chatId,
   messages,
+  variant = "card",
 }: {
   chatId: string;
   messages: ThreadMessage[];
+  variant?: "card" | "app";
 }) {
+  const app = variant === "app";
+  // Abre mostrando a mensagem mais recente, como nos apps de conversa.
+  const scroller = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (scroller.current) scroller.current.scrollTop = scroller.current.scrollHeight;
+  }, [chatId, messages.length]);
   // Se o envio falhar, o texto digitado continua na caixa (só limpa depois de enviar).
   const {
     state,
@@ -45,9 +56,15 @@ export function TelegramThread({
   }, [state, form]);
 
   return (
-    <div className="card">
+    <div className={app ? "chat-app" : "card"}>
       {/* A área rola quando a conversa é longa: focável pelo teclado (WCAG 2.1.1), com nome. */}
-      <div className="chat-scroll" role="region" aria-label="Últimas mensagens" tabIndex={0}>
+      <div
+        ref={scroller}
+        className={app ? "chat-scroll chat-scroll-app" : "chat-scroll"}
+        role="region"
+        aria-label="Últimas mensagens"
+        tabIndex={0}
+      >
         <ol className="chat">
           {messages.map((m) => (
             <li key={m.id} className={`chat-msg chat-${m.author}`}>
@@ -63,17 +80,26 @@ export function TelegramThread({
         ref={form}
         action={formAction}
         onSubmit={onSubmit}
-        className="field"
-        style={{ margin: "14px 0 0" }}
+        className={app ? "field chat-composer" : "field"}
+        style={app ? undefined : { margin: "14px 0 0" }}
       >
         <input type="hidden" name="chatId" value={chatId} />
-        <label htmlFor={`tg-reply-${chatId}`}>Responder pelo Telegram</label>
+        <label htmlFor={`tg-reply-${chatId}`} className={app ? "sr-only" : undefined}>
+          Responder pelo Telegram
+        </label>
         <textarea
           id={`tg-reply-${chatId}`}
           name="text"
           required
           maxLength={1000}
-          rows={3}
+          rows={app ? 2 : 3}
+          placeholder={app ? "Escreva uma mensagem… (Enter envia)" : undefined}
+          onKeyDown={(e) => {
+            if (app && e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+              e.preventDefault();
+              e.currentTarget.form?.requestSubmit();
+            }
+          }}
           aria-invalid={!!state.error || undefined}
           aria-describedby={state.error ? `tg-error-${chatId}` : undefined}
         />
