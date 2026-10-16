@@ -8,7 +8,7 @@ import { appointments, customers, telegramChats, telegramMessages } from "@/db/s
 import type { SendOptions, TelegramUpdate } from "@/lib/telegram/api";
 import { IDLE_MS, markExtracted, readyConversations } from "@/lib/telegram/conversations";
 import { handleTelegramUpdate } from "@/lib/telegram/handler";
-import { CLOSING_TEXT, closeConversation } from "@/lib/telegram/close";
+import { CLOSING_TEXT, closeConversation, deleteConversation } from "@/lib/telegram/close";
 import { listConversations } from "@/lib/telegram/thread";
 import { resetDemoData } from "@/db/reset";
 import { createTestDb } from "../helpers/db";
@@ -238,5 +238,29 @@ describe("Reiniciar demonstração", () => {
     expect(chat.customerId).toBeNull();
     expect(chat.phoneE164).toBe("+5519900000040");
     expect((await db.select().from(telegramMessages)).length).toBe(before);
+  });
+});
+
+describe("excluir a conversa", () => {
+  it("apaga a conversa e as mensagens; o cadastro do cliente continua", async () => {
+    // O teste do "Reiniciar demonstração" acima apagou os clientes: cria um próprio.
+    const [owner] = await db
+      .insert(customers)
+      .values({
+        name: "Cliente Conversa",
+        phoneE164: "+5519900000041",
+        phoneDisplay: "(19) 90000-0041",
+      })
+      .returning({ id: customers.id });
+    await db
+      .insert(telegramChats)
+      .values({ chatId: "888001", firstName: "Teste", customerId: owner.id });
+    await db.insert(telegramMessages).values({ chatId: "888001", author: "cliente", text: "oi" });
+    expect(await deleteConversation(db, "888001")).toBe(true);
+    expect(
+      await db.select().from(telegramMessages).where(eq(telegramMessages.chatId, "888001")),
+    ).toEqual([]);
+    expect(await db.select().from(customers).where(eq(customers.id, owner.id))).toHaveLength(1);
+    expect(await deleteConversation(db, "888001")).toBe(false);
   });
 });

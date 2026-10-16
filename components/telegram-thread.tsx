@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useTransition } from "react";
 import { toast } from "sonner";
-import { CircleCheck, Send } from "lucide-react";
+import { CircleCheck, Send, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   closeTelegramAction,
+  deleteTelegramChatAction,
   replyTelegramAction,
   type ReplyState,
 } from "@/app/(app)/clientes/[id]/telegram-actions";
@@ -47,6 +49,7 @@ export function TelegramThread({
   } = useActionForm<ReplyState>(replyTelegramAction, {});
 
   const [closing, startClose] = useTransition();
+  const router = useRouter();
 
   useEffect(() => {
     if (state.ok) {
@@ -131,6 +134,30 @@ export function TelegramThread({
             }}
           >
             <CircleCheck aria-hidden="true" size={18} /> Encerrar conversa
+          </button>
+          <button
+            type="button"
+            className="btn btn-danger"
+            disabled={pending || closing}
+            onClick={() => {
+              if (
+                !window.confirm(
+                  "Excluir esta conversa e todas as mensagens? Não dá para desfazer. O cadastro do cliente continua.",
+                )
+              ) {
+                return;
+              }
+              startClose(async () => {
+                const r = await deleteTelegramChatAction(chatId).catch(() => ({
+                  error: "Não foi possível excluir agora. Tente de novo em instantes.",
+                }));
+                if ("error" in r && r.error) return void toast.error(r.error);
+                toast.success("Conversa excluída.");
+                if (app) router.replace("/conversas");
+              });
+            }}
+          >
+            <Trash2 aria-hidden="true" size={18} /> Excluir conversa
           </button>
         </div>
       </form>

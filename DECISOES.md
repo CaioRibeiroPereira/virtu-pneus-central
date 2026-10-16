@@ -451,3 +451,4 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
   - as linhas da auditoria desses registros (o antes/depois tem dados pessoais).
 
   Fica uma única linha de auditoria "delete" com o id e o motivo, sem dado pessoal (§6 do plano). O estoque não volta (a mercadoria saiu de verdade); as movimentações ficam, sem o vínculo com o cliente.
+- **Excluir conversa** (pedido do Caio, mesmo dia): botão na conversa (tela Conversas e ficha), com confirmação. Apaga a conversa e as mensagens. Os dados que o Vito já levou para a ficha continuam (para apagar tudo do cliente há a exclusão LGPD). Se a pessoa escrever de novo, começa uma conversa nova, com o aviso inicial. Fica na auditoria só o registro da exclusão, sem conteúdo.

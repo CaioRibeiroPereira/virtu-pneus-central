@@ -6,10 +6,11 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db";
-import { telegramChats, telegramMessages } from "@/db/schema";
+import { auditLog, telegramChats, telegramMessages } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
 import { telegramSender } from "@/lib/telegram/api";
-import { closeConversation } from "@/lib/telegram/close";
+import { closeConversation, deleteConversation } from "@/lib/telegram/close";
+import { randomUUID } from "node:crypto";
 
 const replySchema = z.object({
   chatId: z.string().regex(/^\d{1,20}$/, "Conversa inválida"),
@@ -62,6 +63,27 @@ export async function closeTelegramAction(chatId: string): Promise<ReplyState> {
   } catch {
     return { error: "Não foi possível encerrar agora. Tente de novo em instantes." };
   }
+  revalidatePath("/conversas");
+  revalidatePath("/hoje");
+  revalidatePath("/clientes/[id]", "page");
+  return { ok: true };
+}
+
+/** "Excluir conversa": apaga a conversa e as mensagens dela (a ficha do cliente não muda). */
+export async function deleteTelegramChatAction(chatId: string): Promise<ReplyState> {
+  await requireSession();
+  if (!/^\d{1,20}$/.test(chatId)) return { error: "Conversa inválida" };
+  const removed = await deleteConversation(getDb(), chatId);
+  if (!removed) return { error: "Conversa não encontrada." };
+  await getDb()
+    .insert(auditLog)
+    .values({
+      entityType: "telegram_chat",
+      entityId: randomUUID(),
+      action: "delete",
+      actorType: "gestor",
+      after: { motivo: "conversa do Telegram excluída pelo gestor" },
+    });
   revalidatePath("/conversas");
   revalidatePath("/hoje");
   revalidatePath("/clientes/[id]", "page");

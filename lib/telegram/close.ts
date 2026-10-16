@@ -32,3 +32,15 @@ export async function closeConversation(
   await db.update(telegramChats).set({ handedOffAt: null }).where(eq(telegramChats.chatId, chatId));
   return { ok: true };
 }
+
+/**
+ * Exclui a conversa do Telegram (mensagens junto, em cascata). Os dados que o Vito já levou para a
+ * ficha continuam lá. Se a pessoa escrever de novo, começa uma conversa nova, com o aviso inicial.
+ */
+export async function deleteConversation(db: Db, chatId: string) {
+  const removed = await db
+    .delete(telegramChats)
+    .where(eq(telegramChats.chatId, chatId))
+    .returning({ chatId: telegramChats.chatId });
+  return removed.length > 0;
+}

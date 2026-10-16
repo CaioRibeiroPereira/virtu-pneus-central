@@ -185,6 +185,7 @@ JSON do teste 4.9 (agendamento da Fernanda para um dia que já passou; para repe
 | 6 | Responda por **Conversas** | A resposta chega no seu Telegram | [ ] | |
 | 7 | Em **Conversas**, clique **Encerrar conversa** e confirme | Você recebe a despedida no Telegram; a conversa sai de "aguardando você" | [ ] | |
 | 8 | Pergunte o endereço de novo | O Vito volta a responder sozinho | [ ] | |
+| 8b | Em **Conversas**, clique **Excluir conversa** e confirme | A conversa some da lista; o cadastro do cliente continua. Mandando "oi" de novo, começa uma conversa nova | [ ] | |
 | 9 | Com o n8n ligado, espere 2–3 min sem mandar nada | A conversa vai para a extração (sugestões na Revisão ou aplicadas na ficha) **uma vez só** | [ ] | |
 
 ---
