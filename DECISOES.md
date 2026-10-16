@@ -407,3 +407,13 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
 - **Gráficos sem biblioteca** (barras em CSS): faturamento dos últimos 6 meses, por tipo de serviço e motivos de perda. As barras são decorativas; os valores estão em texto, também para leitor de tela.
 - Cálculo numa função pura (`lib/finance/dashboard.ts`) com testes de unidade: períodos, virada de mês, fuso, aprovação, funil e meses.
 - Demo: vendas fictícias dos últimos 5 meses, recusas com motivo e contatos no começo do funil, sem criar nenhuma ação para hoje (pós-venda já concluído; retorno só daqui a mais de uma semana).
+
+**D62 — O atendente encerra a conversa (Telegram e WhatsApp)** (16/10)
+- Pedido do Caio: a conversa pode ser encerrada pelo atendente nos dois canais. As escolhas foram dele.
+- **Telegram:** botão **Encerrar conversa** (tela Conversas e ficha), com confirmação.
+  - O bot manda uma despedida fixa ("Atendimento encerrado. Obrigado pelo contato! …"), registrada na conversa como resposta da loja.
+  - A conversa sai de "aguardando você" (menu, Hoje e Conversas).
+  - O Vito volta a responder sozinho o que é seguro: a próxima mensagem do cliente é um atendimento novo, sem esperar as 12 h da D57.
+  - Se o Telegram recusar o envio, nada é gravado e a tela avisa.
+- **WhatsApp:** o sistema não recebe as mensagens do WhatsApp (só abre o app com o texto pronto). O encerramento existe no **simulador**: o botão passou a se chamar "Encerrar conversa e enviar ao Vito", que é o que acontece no fim de um atendimento real. Em produção, quem faz esse envio é o n8n.
+- Também no simulador: as respostas do lado da oficina aparecem como **"Loja (atendente)"**, e não mais como Vito. Quem passa preço no WhatsApp é o atendente; o Vito só lê a conversa e nunca passa preço (D57).

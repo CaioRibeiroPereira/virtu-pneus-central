@@ -9,6 +9,7 @@ import { getDb } from "@/db";
 import { telegramChats, telegramMessages } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
 import { telegramSender } from "@/lib/telegram/api";
+import { closeConversation } from "@/lib/telegram/close";
 
 const replySchema = z.object({
   chatId: z.string().regex(/^\d{1,20}$/, "Conversa inválida"),
@@ -45,6 +46,24 @@ export async function replyTelegramAction(_prev: ReplyState, form: FormData): Pr
     .set({ handedOffAt: new Date() })
     .where(eq(telegramChats.chatId, chat.chatId));
   revalidatePath("/conversas");
+  revalidatePath("/clientes/[id]", "page");
+  return { ok: true };
+}
+
+/** "Encerrar conversa" (D62): despedida pelo bot e o Vito volta a atender na próxima mensagem. */
+export async function closeTelegramAction(chatId: string): Promise<ReplyState> {
+  await requireSession();
+  if (!/^\d{1,20}$/.test(chatId)) return { error: "Conversa inválida" };
+  const token = process.env.TELEGRAM_CLIENTE_BOT_TOKEN;
+  if (!token) return { error: "O bot do Telegram não está configurado." };
+  try {
+    const result = await closeConversation(getDb(), chatId, telegramSender(token));
+    if (!result.ok) return { error: "Conversa não encontrada." };
+  } catch {
+    return { error: "Não foi possível encerrar agora. Tente de novo em instantes." };
+  }
+  revalidatePath("/conversas");
+  revalidatePath("/hoje");
   revalidatePath("/clientes/[id]", "page");
   return { ok: true };
 }

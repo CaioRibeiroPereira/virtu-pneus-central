@@ -8,6 +8,8 @@ import { appointments, customers, telegramChats, telegramMessages } from "@/db/s
 import type { SendOptions, TelegramUpdate } from "@/lib/telegram/api";
 import { IDLE_MS, markExtracted, readyConversations } from "@/lib/telegram/conversations";
 import { handleTelegramUpdate } from "@/lib/telegram/handler";
+import { CLOSING_TEXT, closeConversation } from "@/lib/telegram/close";
+import { listConversations } from "@/lib/telegram/thread";
 import { resetDemoData } from "@/db/reset";
 import { createTestDb } from "../helpers/db";
 
@@ -149,6 +151,35 @@ describe("conversa com o dono", () => {
     const later = new Date(NOW.getTime() + 13 * 60 * 60 * 1000);
     await handleTelegramUpdate(textUpdate("que horas vocês abrem?"), deps(later));
     expect(sent.at(-1)?.text).toBe("Nosso horário: seg a sex, 8h às 18h.");
+  });
+});
+
+describe("encerrar a conversa (D62)", () => {
+  it("despedida pelo bot, sai de 'aguardando você' e o Vito volta a responder", async () => {
+    // Conversa nas mãos do dono: preço → "recebemos", depois silêncio.
+    const t0 = new Date(NOW.getTime() + 20 * 60 * 60 * 1000);
+    await handleTelegramUpdate(textUpdate("quanto fica o balanceamento?"), deps(t0));
+    const before = sent.length;
+    await handleTelegramUpdate(textUpdate("alô?"), deps(new Date(t0.getTime() + 60_000)));
+    expect(sent.length).toBe(before); // em silêncio
+
+    const [thread] = await listConversations(db);
+    expect(thread.needsReply).toBe(true);
+    expect(await closeConversation(db, String(CHAT), deps().send)).toEqual({ ok: true });
+    expect(sent.at(-1)?.text).toBe(CLOSING_TEXT);
+    const [after] = await listConversations(db);
+    expect(after.needsReply).toBe(false);
+
+    // Próxima mensagem: atendimento novo, o Vito responde de novo.
+    await handleTelegramUpdate(
+      textUpdate("qual o endereço?"),
+      deps(new Date(t0.getTime() + 2 * 60_000)),
+    );
+    expect(sent.at(-1)?.text).toBe("Estamos em: Rua Exemplo, 100.");
+    expect(await closeConversation(db, "123", deps().send)).toEqual({
+      ok: false,
+      reason: "not_found",
+    });
   });
 });
 

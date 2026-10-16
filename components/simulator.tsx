@@ -164,10 +164,19 @@ export function Simulator({
             onClick={() => run(preset.id)}
           >
             <Send aria-hidden="true" size={18} />
-            {results[preset.id] ? "Enviar de novo" : "3. Processar com o Vito"}
+            {results[preset.id] ? "Enviar de novo" : "3. Encerrar conversa e enviar ao Vito"}
           </button>
         </div>
+        <p className="muted" style={{ marginTop: 8, fontSize: "0.9375rem" }}>
+          Quando o atendente encerra a conversa no WhatsApp, ela vai para o Vito extrair os dados.
+          Em produção, quem faz esse envio é o n8n; aqui, este botão.
+        </p>
         <div aria-live="polite">
+          {results[preset.id] && (
+            <p className="muted" style={{ marginTop: 8 }}>
+              Conversa encerrada pelo atendente.
+            </p>
+          )}
           {results[preset.id] && <Results results={results[preset.id]} />}
         </div>
       </section>

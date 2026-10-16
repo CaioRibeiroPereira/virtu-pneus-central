@@ -1,9 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useTransition } from "react";
 import { toast } from "sonner";
-import { Send } from "lucide-react";
-import { replyTelegramAction, type ReplyState } from "@/app/(app)/clientes/[id]/telegram-actions";
+import { CircleCheck, Send } from "lucide-react";
+import {
+  closeTelegramAction,
+  replyTelegramAction,
+  type ReplyState,
+} from "@/app/(app)/clientes/[id]/telegram-actions";
 import { useActionForm } from "./use-action-form";
 
 const AUTHOR: Record<string, string> = {
@@ -30,6 +34,8 @@ export function TelegramThread({
     formRef: form,
     onSubmit,
   } = useActionForm<ReplyState>(replyTelegramAction, {});
+
+  const [closing, startClose] = useTransition();
 
   useEffect(() => {
     if (state.ok) {
@@ -77,8 +83,28 @@ export function TelegramThread({
           </p>
         )}
         <div className="btn-row">
-          <button type="submit" className="btn btn-primary" disabled={pending}>
+          <button type="submit" className="btn btn-primary" disabled={pending || closing}>
             <Send aria-hidden="true" size={18} /> {pending ? "Enviando…" : "Enviar"}
+          </button>
+          <button
+            type="button"
+            className="btn"
+            disabled={pending || closing}
+            onClick={() => {
+              if (!window.confirm("Encerrar o atendimento? O cliente recebe uma despedida.")) {
+                return;
+              }
+              startClose(async () => {
+                const r = await closeTelegramAction(chatId).catch(() => ({
+                  error: "Não foi possível encerrar agora. Tente de novo em instantes.",
+                }));
+                if ("error" in r && r.error) toast.error(r.error);
+                else
+                  toast.success("Atendimento encerrado. O Vito volta a responder o que é seguro.");
+              });
+            }}
+          >
+            <CircleCheck aria-hidden="true" size={18} /> Encerrar conversa
           </button>
         </div>
       </form>

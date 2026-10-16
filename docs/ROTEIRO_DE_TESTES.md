@@ -55,7 +55,7 @@ esperado. Marque `[x]` no que passou e anote o que não passou na coluna **Obs.*
 
 | # | Passos | Esperado | OK | Obs. |
 |---|---|---|---|---|
-| 1 | No simulador, escolha **1. Cliente novo pede orçamento** → **Processar com o Vito** | 3 respostas "Aplicado automaticamente" | [ ] | |
+| 1 | No simulador, escolha **1. Cliente novo pede orçamento** → **Encerrar conversa e enviar ao Vito** | 3 respostas "Aplicado automaticamente" | [ ] | |
 | 2 | Clique **Ver na ficha do cliente** | Cliente "Criado pelo Vito", veículo, orçamento e a etapa "Orçamento enviado"; itens com selo "via Vito" e "Ver trecho da conversa" | [ ] | |
 | 3 | Processe a conversa 1 de novo (ou a **7. reenvio**) | "Já recebido antes: nada foi gravado de novo" | [ ] | |
 | 4 | Processe **2. Cliente aprova orçamento** | "Enviado para a sua revisão" | [ ] | |
@@ -179,7 +179,9 @@ JSON do teste 4.9 (agendamento da Fernanda para um dia que já passou; para repe
 | 4 | Pergunte um preço | "Recebemos sua mensagem…" e o dono é avisado no bot do resumo; nenhum preço inventado | [ ] | |
 | 5 | Mande outra mensagem | O Vito fica em silêncio (a conversa passou para o dono) | [ ] | |
 | 6 | Responda por **Conversas** | A resposta chega no seu Telegram | [ ] | |
-| 7 | Com o n8n ligado, espere 2–3 min sem mandar nada | A conversa vai para a extração (sugestões na Revisão ou aplicadas na ficha) **uma vez só** | [ ] | |
+| 7 | Em **Conversas**, clique **Encerrar conversa** e confirme | Você recebe a despedida no Telegram; a conversa sai de "aguardando você" | [ ] | |
+| 8 | Pergunte o endereço de novo | O Vito volta a responder sozinho | [ ] | |
+| 9 | Com o n8n ligado, espere 2–3 min sem mandar nada | A conversa vai para a extração (sugestões na Revisão ou aplicadas na ficha) **uma vez só** | [ ] | |
 
 ---
 

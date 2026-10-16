@@ -804,3 +804,11 @@ npm run db:migrate                                           # 0007: motivo "dat
 - Na revisão visual: os valores sobre as barras dos meses se sobrepunham em 375 px (passaram para "6,5 mil", com o valor exato para leitor de tela) e o cartão do gráfico esticava até a altura do funil.
 - Seed: 14 clientes a mais (vendas antigas, perdidos e contatos novos), sem mudar o Hoje (os testes do Hoje continuam iguais).
 - Testes: `tests/unit/dashboard.test.ts` (8) e o Painel no axe (2 temas × 375/1280) e no reflow de 320 px. Ao todo, 287 de unidade e integração e 13 E2E passando.
+
+---
+
+## Etapa 17 — Encerrar a conversa (16/10/2026)
+
+- `lib/telegram/close.ts` (despedida, registro e volta do Vito) + `closeTelegramAction` + botão na conversa. Decisão D62.
+- Simulador: "Encerrar conversa e enviar ao Vito" e a fala da oficina como "Loja (atendente)".
+- Teste de integração: dono em silêncio → encerrar → despedida enviada, conversa fora de "aguardando você" → a próxima pergunta recebe resposta do Vito; conversa inexistente → `not_found`.

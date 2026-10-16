@@ -45,7 +45,7 @@ test("Simulador → aplica, reenvio é ignorado, alto impacto vai para a revisã
   await page.goto("/simulador");
 
   // Conversa 1: cliente novo → 3 eventos aplicados automaticamente.
-  await page.getByRole("button", { name: /Processar com o Vito/ }).click();
+  await page.getByRole("button", { name: /Encerrar conversa e enviar ao Vito/ }).click();
   const respostas = page.getByRole("list", { name: "Respostas do sistema" });
   await expect(respostas.getByText("Aplicado automaticamente")).toHaveCount(3, { timeout: 30_000 });
 
@@ -55,7 +55,7 @@ test("Simulador → aplica, reenvio é ignorado, alto impacto vai para a revisã
 
   // Conversa 2: aprovação de orçamento → fila de revisão.
   await page.getByRole("button", { name: /Cliente aprova orçamento/ }).click();
-  await page.getByRole("button", { name: /Processar com o Vito/ }).click();
+  await page.getByRole("button", { name: /Encerrar conversa e enviar ao Vito/ }).click();
   // Texto exato e dentro da lista de respostas: a introdução da página também cita "enviado para a sua revisão".
   await expect(respostas.getByText("Enviado para a sua revisão", { exact: true })).toBeVisible({
     timeout: 30_000,
@@ -96,7 +96,7 @@ test("Serviço feito pelo Vito → Revisão com a baixa sugerida → aprovar →
 
   await page.goto("/simulador");
   await page.getByRole("button", { name: /Loja avisa que o serviço foi feito/ }).click();
-  await page.getByRole("button", { name: /Processar com o Vito/ }).click();
+  await page.getByRole("button", { name: /Encerrar conversa e enviar ao Vito/ }).click();
   const respostas = page.getByRole("list", { name: "Respostas do sistema" });
   await expect(respostas.getByText("Enviado para a sua revisão", { exact: true })).toBeVisible({
     timeout: 30_000,
