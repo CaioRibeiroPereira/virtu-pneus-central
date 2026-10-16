@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { safeNextPath } from "@/lib/auth/redirect";
 import { hasSession } from "@/lib/auth/session";
 import { LoginForm } from "./login-form";
+import { Brand } from "@/components/brand";
 
 export const metadata: Metadata = { title: "Entrar | Central de clientes" };
 
@@ -16,8 +17,8 @@ export default async function LoginPage({
   if (await hasSession()) redirect(next ? safeNextPath(next) : "/painel");
   return (
     <main className="page" style={{ maxWidth: 440, paddingTop: "12vh" }}>
-      <p className="brand" style={{ color: "var(--text)", marginBottom: 16 }}>
-        virtù<span style={{ color: "var(--accent-text)" }}>.</span>
+      <p className="brand brand-light" style={{ marginBottom: 16 }}>
+        <Brand />
       </p>
       <section className="card" aria-labelledby="titulo">
         <h1 id="titulo">Central de clientes</h1>

@@ -9,6 +9,7 @@ import { lowStock } from "@/lib/oficina/inventory";
 import { BottomNav, SidebarNav } from "@/components/nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Toaster } from "@/components/toaster";
+import { Brand } from "@/components/brand";
 
 // Layout das telas do gestor: exige sessão (além do proxy) e mostra a navegação.
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </a>
       <aside className="sidebar">
         <Link href="/painel" className="brand">
-          virtù<span>.</span>
+          <Brand />
         </Link>
         <SidebarNav
           reviewCount={reviewCount}
@@ -47,7 +48,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div>
         <header className="topbar">
           <Link href="/painel" className="brand">
-            virtù<span>.</span>
+            <Brand />
           </Link>
           <ThemeToggle />
         </header>
