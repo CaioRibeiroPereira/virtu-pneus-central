@@ -8,6 +8,7 @@ import { appointments, customers, telegramChats, telegramMessages } from "@/db/s
 import type { SendOptions, TelegramUpdate } from "@/lib/telegram/api";
 import { IDLE_MS, markExtracted, readyConversations } from "@/lib/telegram/conversations";
 import { handleTelegramUpdate } from "@/lib/telegram/handler";
+import { resetDemoData } from "@/db/reset";
 import { createTestDb } from "../helpers/db";
 
 let db: Db;
@@ -159,5 +160,20 @@ describe("lote para a extração (n8n)", () => {
     // Depois da confirmação, o lote não volta.
     expect(await markExtracted(db, conv.chat_id, new Date(conv.ate))).toBeGreaterThan(0);
     expect(await readyConversations(db, new Date(last + IDLE_MS + 1000))).toEqual([]);
+  });
+});
+
+describe("Reiniciar demonstração", () => {
+  it("não apaga as conversas do Telegram (canal real); só desfaz o atalho para o cliente", async () => {
+    const before = (await db.select().from(telegramMessages)).length;
+    await resetDemoData(db, "2026-10-15");
+    const [chat] = await db
+      .select()
+      .from(telegramChats)
+      .where(eq(telegramChats.chatId, String(CHAT)));
+    expect(chat).toBeDefined();
+    expect(chat.customerId).toBeNull();
+    expect(chat.phoneE164).toBe("+5519900000040");
+    expect((await db.select().from(telegramMessages)).length).toBe(before);
   });
 });

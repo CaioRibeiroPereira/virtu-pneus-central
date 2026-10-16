@@ -15,10 +15,10 @@ export type ThreadMessage = { id: string; author: string; text: string; when: st
 
 /** Conversa do Telegram na ficha + caixa para o dono responder (D57). */
 export function TelegramThread({
-  customerId,
+  chatId,
   messages,
 }: {
-  customerId: string;
+  chatId: string;
   messages: ThreadMessage[];
 }) {
   const [state, action, pending] = useActionState<ReplyState, FormData>(replyTelegramAction, {});
@@ -44,19 +44,19 @@ export function TelegramThread({
         ))}
       </ol>
       <form ref={form} action={action} className="field" style={{ margin: "14px 0 0" }}>
-        <input type="hidden" name="customerId" value={customerId} />
-        <label htmlFor="tg-reply">Responder pelo Telegram</label>
+        <input type="hidden" name="chatId" value={chatId} />
+        <label htmlFor={`tg-reply-${chatId}`}>Responder pelo Telegram</label>
         <textarea
-          id="tg-reply"
+          id={`tg-reply-${chatId}`}
           name="text"
           required
           maxLength={1000}
           rows={3}
           aria-invalid={!!state.error || undefined}
-          aria-describedby={state.error ? "tg-error" : undefined}
+          aria-describedby={state.error ? `tg-error-${chatId}` : undefined}
         />
         {state.error && (
-          <p id="tg-error" className="field-error" role="alert">
+          <p id={`tg-error-${chatId}`} className="field-error" role="alert">
             {state.error}
           </p>
         )}

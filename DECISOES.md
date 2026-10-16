@@ -334,3 +334,6 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
 - Extração: as conversas com telefone e paradas há 2 min vão, por um workflow do n8n, para o **mesmo** webhook de extração do WhatsApp. O id é estável por lote, então reprocessar gera "duplicate".
 - O dono responde pela ficha ("Conversa no Telegram"), e a resposta sai pelo bot da oficina.
 - O bot da oficina é **separado** do bot do resumo: o dono testa como cliente pelo próprio Telegram.
+- Ajuste (16/10), depois do primeiro teste ao vivo:
+  - **Tela Conversas:** sem cadastro, a conversa não aparecia em lugar nenhum. A tela mostra todas as conversas, com resposta e o atalho "Criar cadastro" (nome e telefone já preenchidos), e há avisos no menu, no "Mais" do celular e no Hoje. A conversa também é achada pelo telefone, então aparece na ficha logo após o cadastro.
+  - **As conversas sobrevivem a "Reiniciar demonstração":** o `TRUNCATE customers CASCADE` do reinício apagava as conversas, porque havia chave estrangeira para clientes. A chave foi removida (migração 0005) e o reinício só zera o atalho `customer_id`. Um teste garante isso.

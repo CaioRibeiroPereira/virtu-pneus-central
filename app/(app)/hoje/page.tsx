@@ -6,6 +6,7 @@ import {
   CircleCheck,
   Clock,
   MessageCircle,
+  MessagesSquare,
   Plus,
   Sparkles,
   Wallet,
@@ -16,6 +17,7 @@ import { taskTypeLabel } from "@/lib/labels";
 import { whatsappMessage } from "@/lib/messages";
 import { whatsappLink } from "@/lib/phone";
 import { loadTodayExtras } from "@/lib/rules/today-extras";
+import { conversationsNeedingReply } from "@/lib/telegram/thread";
 import { loadTodayPanel, type TodayItem, type TodayTask } from "@/lib/rules/today";
 import { TaskActions } from "@/components/task-actions";
 
@@ -151,9 +153,9 @@ export default async function HojePage({
   const { filtro } = await searchParams;
   const today = todayInStore();
   // Sincroniza as regras automáticas e monta o painel numa transação (§7.2).
-  const [panel, extras] = await withTransactionalDb(async (db) => {
+  const [panel, extras, waitingChats] = await withTransactionalDb(async (db) => {
     const p = await loadTodayPanel(db, today);
-    return [p, await loadTodayExtras(db, today)] as const;
+    return [p, await loadTodayExtras(db, today), await conversationsNeedingReply(db)] as const;
   });
 
   const appointments = panel.dueToday.filter((i): i is Appointment => i.kind === "appointment");
@@ -293,6 +295,21 @@ export default async function HojePage({
       </div>
 
       <aside className="today-side" aria-label="Resumo do dia">
+        {waitingChats > 0 && (
+          <section className="card panel" aria-labelledby="mensagens-telegram">
+            <h2 id="mensagens-telegram">
+              <MessagesSquare aria-hidden="true" size={19} /> Mensagens no Telegram
+            </h2>
+            <p className="muted">
+              {waitingChats} {waitingChats === 1 ? "conversa esperando" : "conversas esperando"} sua
+              resposta.
+            </p>
+            <Link href="/conversas" className="btn btn-primary" style={{ marginTop: 10 }}>
+              Abrir conversas
+            </Link>
+          </section>
+        )}
+
         <AgendaPanel items={appointments} />
 
         {panel.pendingReviews > 0 && (

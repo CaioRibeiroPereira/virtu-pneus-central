@@ -650,3 +650,34 @@ npx vitest run                         # 179 passando (2 rodadas seguidas)
 - O axe no tema escuro achou 2 falhas reais: o hover do botão verde (4,28:1) e o verde de botão usado como texto (3,56:1). As duas foram corrigidas (D55).
 - No build de produção, a navegação por todas as telas nos dois temas registrou 0 erros no console. Isso descarta o aviso de hidratação visto uma vez no servidor de desenvolvimento.
 - **Correção de um diagnóstico anterior:** os testes de integração que "falhavam ao carregar" na suíte completa (vistos também na etapa 8) não eram pressão de memória. Era o tempo limite de 10 s do `beforeAll`, que sobe o PGlite com migrações e seed em paralelo. Com `hookTimeout: 60_000` em `vitest.config.ts`, a suíte passou duas vezes seguidas.
+
+---
+
+## Etapa 11 — Simulador fora do menu e canal Telegram com clientes (15–16/10/2026)
+
+**Objetivo:** pedidos do Caio: o simulador como link de teste, e o Telegram como canal cliente ↔ oficina, com o Vito respondendo sozinho só o que é seguro, sem mexer no WhatsApp. Decisões D56 e D57.
+
+### 11.1 Simulador (D56)
+- No menu, "Simulador" deu lugar a "Mais". Em **Mais → Ferramentas de teste**, o simulador abre em nova aba. O README traz o link direto.
+
+### 11.2 Telegram (D57)
+- `lib/telegram/autoreply.ts`: classificação por regras e respostas de uma lista fechada (17 testes, incluindo manipulação e "nenhum número inventado").
+- `lib/telegram/handler.ts`: idempotência por `update_id`, telefone próprio × contato encaminhado, agendamento vindo do banco e aviso ao dono.
+- `app/api/telegram/webhook`: confere o segredo do Telegram; em erro responde 500, e o Telegram reenvia com segurança.
+- `/api/telegram/conversas` e `.../extraida`: rotas do n8n. O workflow `vito-telegram-extracao` reutiliza o webhook de extração do WhatsApp.
+- Telas: "Conversa no Telegram" na ficha e a tela **Conversas** (com resposta e "Criar cadastro").
+- Migrações: 0004 (tabelas) e 0005 (sem chave estrangeira para clientes).
+- Implantação:
+  ```bash
+  npm run db:migrate
+  printf '%s' "$VALOR" | npx vercel env add TELEGRAM_CLIENTE_BOT_TOKEN production   # e o segredo, o bot e o chat do resumo
+  npx vercel redeploy <último deploy de produção> --target production
+  npx tsx --env-file=.env.local scripts/telegram-webhook.ts   # setWebhook + descrição do bot
+  ```
+
+### 11.3 Teste ao vivo e o que ele revelou
+- Bot da oficina **@virtu_oficina_bot**, criado pelo Caio. O token foi para o `.env.local` sem passar pelo chat.
+- Primeiro teste: o aviso de assistente automático, o pedido de telefone, o telefone compartilhado, o endereço e o horário funcionaram. A extração levou a conversa para a **Revisão** (número desconhecido, confiança 0,5), como mandam as regras.
+- Problema 1: **sem cadastro, a conversa não aparecia no site**. Criada a tela Conversas.
+- Problema 2: **os E2E apagaram a conversa real**. O "Reiniciar demonstração" que eles executam faz `TRUNCATE customers CASCADE`, que alcançava as tabelas do Telegram pela chave estrangeira. Corrigido (migração 0005 e teste). É mais um efeito do banco compartilhado entre demo e testes (D37).
+- Testes: 207 de unidade e integração. Os E2E passaram (12) em três rodadas seguidas. Numa rodada anterior, 2 testes de acessibilidade do tema escuro falharam e **não se reproduziram** em três novas rodadas; a causa não foi identificada.

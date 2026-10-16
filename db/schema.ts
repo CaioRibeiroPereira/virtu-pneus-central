@@ -377,7 +377,12 @@ export const telegramChats = pgTable(
     firstName: text("first_name"),
     /** Só depois que o cliente toca em "Compartilhar meu telefone" (o Telegram não informa). */
     phoneE164: text("phone_e164"),
-    customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
+    /**
+     * Atalho para o cliente — SEM chave estrangeira de propósito (D57): "Reiniciar demonstração"
+     * faz TRUNCATE customers CASCADE, que apagaria as conversas reais. A conversa também é achada
+     * pelo telefone; o reinício só zera este campo.
+     */
+    customerId: uuid("customer_id"),
     /** Quando o aviso "sou um assistente automático" foi enviado (transparência/LGPD). */
     disclosedAt: timestamp("disclosed_at", { withTimezone: true }),
     /** Último "recebemos sua mensagem": evita repetir a cada mensagem. */

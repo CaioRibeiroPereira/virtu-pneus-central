@@ -16,6 +16,9 @@ export async function resetDemoData(db: Db, today: DateOnly = todayInStore()) {
   await db.transaction(async (tx) => {
     await tx.execute(sql`truncate table audit_log, review_items, tasks, interactions, appointments,
       services, quotes, vehicles, agent_events, customers cascade`);
+    // Conversas do Telegram são do canal real, não da demo: ficam. Só perdem o atalho para os
+    // clientes apagados; na próxima mensagem voltam a ser ligadas pelo telefone (D57).
+    await tx.update(s.telegramChats).set({ customerId: null });
     // agent_events ↔ customers se referenciam: insere os eventos sem cliente
     // e liga o cliente no fim, quando os dois lados já existem.
     if (data.agentEvents.length) {

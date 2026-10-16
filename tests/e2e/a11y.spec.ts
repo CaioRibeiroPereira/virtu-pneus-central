@@ -41,6 +41,7 @@ for (const theme of THEMES)
           ["/mais", "06-mais"],
           ["/revisao", "07-revisao"],
           ["/simulador", "08-simulador"],
+          ["/conversas", "09-conversas"],
         ];
         for (const [path, shot] of pages) {
           await page.goto(path);

@@ -32,7 +32,13 @@ export default async function FichaPage({
   if (!UUID.test(id)) notFound();
   const today = todayInStore();
   const detail = await getCustomerDetail(getDb(), id, today);
-  const thread = detail ? await telegramThread(getDb(), id) : null;
+  const thread = detail
+    ? await telegramThread(getDb(), {
+        id,
+        name: detail.customer.name,
+        phoneE164: detail.customer.phoneE164,
+      })
+    : null;
   if (!detail) notFound();
   const { customer: c } = detail;
   const filter = TIMELINE_KINDS.some(([k]) => k === tipo) ? (tipo as TimelineKind) : null;
@@ -151,7 +157,7 @@ export default async function FichaPage({
             Conversa no Telegram
           </h2>
           <TelegramThread
-            customerId={id}
+            chatId={thread.chatId}
             messages={thread.messages.map((m) => ({
               id: m.id,
               author: m.author,

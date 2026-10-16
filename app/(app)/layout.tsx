@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import { getDb } from "@/db";
 import { hasSession } from "@/lib/auth/session";
 import { pendingReviewCount } from "@/lib/customers/queries";
+import { conversationsNeedingReply } from "@/lib/telegram/thread";
 import { BottomNav, SidebarNav } from "@/components/nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Toaster } from "@/components/toaster";
@@ -13,7 +14,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   if (!(await hasSession())) redirect("/login");
-  const reviewCount = await pendingReviewCount(getDb());
+  const [reviewCount, conversationCount] = await Promise.all([
+    pendingReviewCount(getDb()),
+    conversationsNeedingReply(getDb()),
+  ]);
 
   return (
     <div className="app-shell">
@@ -24,7 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Link href="/hoje" className="brand">
           virtù<span>.</span>
         </Link>
-        <SidebarNav reviewCount={reviewCount} />
+        <SidebarNav reviewCount={reviewCount} conversationCount={conversationCount} />
         <div className="sidebar-foot">
           <ThemeToggle withLabel />
           <form action="/logout" method="post">
@@ -45,7 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {children}
         </main>
       </div>
-      <BottomNav reviewCount={reviewCount} />
+      <BottomNav reviewCount={reviewCount} conversationCount={conversationCount} />
       <Toaster />
     </div>
   );

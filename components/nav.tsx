@@ -2,9 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarCheck, Inbox, Menu, Users } from "lucide-react";
+import { CalendarCheck, Inbox, Menu, MessagesSquare, Users } from "lucide-react";
 
-type Item = { href: string; label: string; icon: React.ElementType; count?: number };
+type Item = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  count?: number;
+  countLabel?: string;
+};
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -20,23 +26,36 @@ function CountBadge({ count, label }: { count?: number; label: string }) {
 }
 
 /** Menu lateral (desktop). */
-export function SidebarNav({ reviewCount }: { reviewCount: number }) {
+export function SidebarNav({
+  reviewCount,
+  conversationCount = 0,
+}: {
+  reviewCount: number;
+  conversationCount?: number;
+}) {
   const pathname = usePathname();
   const items: Item[] = [
     { href: "/hoje", label: "Hoje", icon: CalendarCheck },
     { href: "/clientes", label: "Clientes", icon: Users },
     { href: "/revisao", label: "Revisão", icon: Inbox, count: reviewCount },
+    {
+      href: "/conversas",
+      label: "Conversas",
+      icon: MessagesSquare,
+      count: conversationCount,
+      countLabel: "conversas esperando resposta",
+    },
     { href: "/mais", label: "Mais", icon: Menu },
   ];
   return (
     <nav aria-label="Menu principal">
       <ul>
-        {items.map(({ href, label, icon: Icon, count }) => (
+        {items.map(({ href, label, icon: Icon, count, countLabel }) => (
           <li key={href}>
             <Link href={href} aria-current={isActive(pathname, href) ? "page" : undefined}>
               <Icon aria-hidden="true" size={20} />
               {label}
-              <CountBadge count={count} label="sugestões para revisar" />
+              <CountBadge count={count} label={countLabel ?? "sugestões para revisar"} />
             </Link>
           </li>
         ))}
@@ -46,23 +65,35 @@ export function SidebarNav({ reviewCount }: { reviewCount: number }) {
 }
 
 /** Barra inferior (celular): os 4 destinos mais usados ao alcance do polegar. */
-export function BottomNav({ reviewCount }: { reviewCount: number }) {
+export function BottomNav({
+  reviewCount,
+  conversationCount = 0,
+}: {
+  reviewCount: number;
+  conversationCount?: number;
+}) {
   const pathname = usePathname();
   const items: Item[] = [
     { href: "/hoje", label: "Hoje", icon: CalendarCheck },
     { href: "/clientes", label: "Clientes", icon: Users },
     { href: "/revisao", label: "Revisão", icon: Inbox, count: reviewCount },
-    { href: "/mais", label: "Mais", icon: Menu },
+    {
+      href: "/mais",
+      label: "Mais",
+      icon: Menu,
+      count: conversationCount,
+      countLabel: "conversas esperando resposta",
+    },
   ];
   return (
     <nav aria-label="Menu principal" className="bottom-nav">
       <ul>
-        {items.map(({ href, label, icon: Icon, count }) => (
+        {items.map(({ href, label, icon: Icon, count, countLabel }) => (
           <li key={href}>
             <Link href={href} aria-current={isActive(pathname, href) ? "page" : undefined}>
               <Icon aria-hidden="true" size={22} />
               {label}
-              <CountBadge count={count} label="sugestões para revisar" />
+              <CountBadge count={count} label={countLabel ?? "sugestões para revisar"} />
             </Link>
           </li>
         ))}
