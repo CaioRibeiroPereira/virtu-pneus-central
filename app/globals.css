@@ -304,6 +304,10 @@ a {
 }
 
 @media (min-width: 900px) {
+  /* Atalhos que o menu lateral já mostra (página Mais): só no celular. */
+  .mobile-only {
+    display: none;
+  }
   .app-shell {
     display: grid;
     grid-template-columns: 248px 1fr;

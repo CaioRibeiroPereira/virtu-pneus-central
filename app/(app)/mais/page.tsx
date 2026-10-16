@@ -17,7 +17,8 @@ export const metadata: Metadata = { title: "Mais | Central de clientes" };
 
 const row = { justifyContent: "flex-start", width: "100%" } as const;
 
-// O que não é do dia a dia do dono fica aqui. O simulador é ferramenta de TESTE/demonstração
+// O que não é do dia a dia do dono fica aqui. No celular, também os atalhos que não cabem na barra
+// de baixo; no computador eles já estão no menu lateral e ficam escondidos (mobile-only). O simulador é ferramenta de TESTE/demonstração
 // (D56): fora do menu principal, abre em nova aba.
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export default async function MaisPage() {
         <h1>Mais</h1>
       </div>
       <ul className="stack">
-        <li>
+        <li className="mobile-only">
           <Link href="/conversas" className="card btn" style={row}>
             <MessagesSquare aria-hidden="true" size={20} /> Conversas (Telegram)
             {waiting > 0 && (
@@ -43,17 +44,17 @@ export default async function MaisPage() {
             )}
           </Link>
         </li>
-        <li>
+        <li className="mobile-only">
           <Link href="/estoque" className="card btn" style={row}>
             <Package aria-hidden="true" size={20} /> Estoque
           </Link>
         </li>
-        <li>
+        <li className="mobile-only">
           <Link href="/servicos" className="card btn" style={row}>
             <Wrench aria-hidden="true" size={20} /> Serviços e preços
           </Link>
         </li>
-        <li>
+        <li className="mobile-only">
           <Link href="/equipe" className="card btn" style={row}>
             <UsersRound aria-hidden="true" size={20} /> Equipe
           </Link>
@@ -63,7 +64,7 @@ export default async function MaisPage() {
             <Activity aria-hidden="true" size={20} /> Saúde do sistema
           </Link>
         </li>
-        <li>
+        <li className="mobile-only">
           <form action="/logout" method="post">
             <button type="submit" className="card btn" style={row}>
               <LogOut aria-hidden="true" size={20} /> Sair
