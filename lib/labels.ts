@@ -69,6 +69,7 @@ export const channelLabel: Record<string, string> = {
   whatsapp: "WhatsApp",
   telefone: "Telefone",
   balcao: "Balcão",
+  telegram: "Telegram",
 };
 
 /** Lista [valor, rótulo] para montar <select>. */

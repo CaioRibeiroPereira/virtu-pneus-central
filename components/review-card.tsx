@@ -131,6 +131,9 @@ export function ReviewCard({
           <strong>Número desconhecido: {card.phone}</strong>
         )}
         <span className="muted"> · confiança do Vito: {pct}%</span>
+        <span className="badge" style={{ marginLeft: 8 }}>
+          via {card.event.channel}
+        </span>
       </p>
       {card.event.evidence && (
         <blockquote

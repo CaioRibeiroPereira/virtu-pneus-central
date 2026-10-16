@@ -60,7 +60,7 @@ export const eventDataSchemas = {
   }),
   "interaction.logged": z.object({
     summary: shortText(1000),
-    channel: z.enum(["whatsapp", "telefone", "balcao"]),
+    channel: z.enum(["whatsapp", "telefone", "balcao", "telegram"]),
   }),
   "quote.created": z.object({
     description: shortText(500),

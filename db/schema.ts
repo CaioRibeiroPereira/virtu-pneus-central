@@ -42,6 +42,7 @@ export const interactionChannelEnum = pgEnum("interaction_channel", [
   "whatsapp",
   "telefone",
   "balcao",
+  "telegram",
 ]);
 export const quoteStatusEnum = pgEnum("quote_status", [
   "rascunho",

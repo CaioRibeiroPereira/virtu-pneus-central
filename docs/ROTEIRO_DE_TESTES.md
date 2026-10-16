@@ -190,6 +190,30 @@ JSON do teste 4.9 (agendamento da Fernanda para um dia que já passou; para repe
 
 ---
 
+### 6.1 Telegram até a Revisão
+
+O caminho completo: você conversa com o bot → o n8n leva a conversa para o Vito extrair → o
+resultado entra na ficha ou espera você na **Revisão**, com a etiqueta **"via Telegram"**.
+
+**Antes:** o Docker Desktop aberto, com o n8n rodando (`docker ps` mostra `n8n-n8n-1`; painel em
+http://localhost:5678) e os workflows "Vito — conversas do Telegram para a extração" e "Vito —
+extração de conversas" ativos. Sem o n8n, o bot continua respondendo horário e endereço (essa parte
+roda no site), mas nada vai para a extração.
+
+| # | Passos | Esperado | OK | Obs. |
+|---|---|---|---|---|
+| 1 | No Telegram, abra **@virtu_oficina_bot** e mande "oi" | Boas-vindas do Vito e o pedido do telefone | [ ] | |
+| 2 | Toque em **Compartilhar meu telefone** | "Obrigado! … Em que posso ajudar?"; em **Conversas** aparece a sua conversa | [ ] | |
+| 3 | Mande: "Queria orçamento de 4 pneus 185/65 R15 para o meu Onix" | "Recebemos sua mensagem…" (passa para o dono); o bot do resumo te avisa | [ ] | |
+| 4 | **Não mande mais nada por 2–3 minutos** (a extração espera a conversa parar) | Em **Clientes**, aparece um cliente criado pelo Vito com o seu telefone, com o atendimento **"Atendimento · Telegram"** no histórico | [ ] | |
+| 5 | Mande: "Pode fechar o orçamento, aprovado" e espere 2–3 min | Na **Revisão**, "Mudar situação do orçamento" com **"via Telegram"** (mexe com dinheiro: sempre passa por você) | [ ] | |
+| 6 | Mande: "Posso levar o carro dia 10 de setembro às 9h?" e espere 2–3 min | Na **Revisão**, "Criar agendamento" com o motivo **"A data já passou: confira"** e **"via Telegram"** | [ ] | |
+| 7 | Aprove, corrija ("Editar e aprovar") ou rejeite cada uma | Igual às sugestões do WhatsApp; o resultado aparece na ficha | [ ] | |
+| 8 | Para repetir do zero | **Excluir conversa** em Conversas e **Excluir cliente (LGPD)** na ficha criada pelo Vito | [ ] | |
+
+Se nada aparecer depois de 3 minutos: confira no n8n (aba *Executions*) se o workflow do Telegram
+rodou e se o Gemini respondeu (cota diária); o modelo reserva entra sozinho quando o principal falha.
+
 ## 7. Geral
 
 | # | Passos | Esperado | OK | Obs. |

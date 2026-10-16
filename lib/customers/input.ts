@@ -114,7 +114,7 @@ export const newVehicleForm = vehicleForm
 
 /** Atendimento registrado pelo gestor (ligação, balcão, WhatsApp fora do Vito). */
 export const interactionForm = z.object({
-  channel: z.enum(["whatsapp", "telefone", "balcao"]),
+  channel: z.enum(["whatsapp", "telefone", "balcao", "telegram"]),
   summary: required(1000, "Escreva o que foi conversado"),
 });
 

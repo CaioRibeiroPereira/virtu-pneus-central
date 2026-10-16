@@ -1,0 +1,1 @@
+ALTER TYPE "public"."interaction_channel" ADD VALUE 'telegram';

@@ -8,6 +8,7 @@ import {
   appointments,
   auditLog,
   customers,
+  interactions,
   products,
   quotes,
   reviewItems,
@@ -310,5 +311,21 @@ describe("Vito com data no passado", () => {
     expect((await db.select().from(customers)).length).toBe(before);
     const [review] = await db.select().from(reviewItems).where(eq(reviewItems.id, reviewId));
     expect(review.status).toBe("pendente");
+  });
+});
+
+describe("atendimento que veio do Telegram", () => {
+  it("é gravado com o canal Telegram, mesmo que o extrator diga WhatsApp", async () => {
+    const c = await newCustomer();
+    const ev = agentEventSchema.parse({
+      ...event("tg-canal", "interaction.logged", c.phoneDisplay!, {
+        summary: "Perguntou o horário",
+        channel: "whatsapp",
+      }),
+      source: { channel: "whatsapp", conversation_id: "tg-777-abcd1234", message_ids: [] },
+    });
+    await processAgentEvent(db, ev, { threshold: 0.85, today: TODAY });
+    const [i] = await db.select().from(interactions).where(eq(interactions.customerId, c.id));
+    expect(i.channel).toBe("telegram");
   });
 });

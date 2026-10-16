@@ -180,7 +180,8 @@ export async function applyAgentEvent(
     case "interaction.logged": {
       const values = {
         customerId: ctx.customerId,
-        channel: event.data.channel,
+        // Conversa do Telegram (D57): o extrator é o mesmo do WhatsApp e pode dizer "whatsapp".
+        channel: event.source.conversation_id.startsWith("tg-") ? "telegram" : event.data.channel,
         occurredAt: new Date(event.occurred_at),
         summary: event.data.summary,
         evidence: event.evidence ?? null,

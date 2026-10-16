@@ -16,6 +16,16 @@ import { normalizePhone } from "@/lib/phone";
 
 export type Comparison = { field: string; current: string; proposed: string };
 
+/**
+ * De onde veio a conversa. O contrato (§8) só conhece "whatsapp"; o canal sai do id da conversa:
+ * "tg-…" vem do Telegram (D57) e "sim-…" do simulador.
+ */
+export function conversationChannel(conversationId: string | null): string {
+  if (conversationId?.startsWith("tg-")) return "Telegram";
+  if (conversationId?.startsWith("sim-")) return "WhatsApp (simulador)";
+  return "WhatsApp";
+}
+
 export type ReviewCard = {
   id: string;
   reason: string;
@@ -26,6 +36,8 @@ export type ReviewCard = {
     evidence: string | null;
     receivedAt: Date;
     agentName: string | null;
+    /** "Telegram", "WhatsApp" ou "WhatsApp (simulador)". */
+    channel: string;
   };
   data: Record<string, unknown>;
   phone: string;
@@ -139,12 +151,14 @@ export async function listPendingReviews(db: Db): Promise<ReviewCard[]> {
       ];
     } else {
       // Tipos que criam registro novo: não há "dado atual".
+      const fromTelegram = event.conversationId?.startsWith("tg-");
       comparison = Object.entries(data)
         .filter(([f]) => f !== "quote_id")
         .map(([f, v]) => ({
           field: fieldLabel(f),
           current: "— (novo registro)",
-          proposed: show(f, v, payload.type),
+          // Atendimento vindo do Telegram é gravado como Telegram (ver apply.ts).
+          proposed: show(f, f === "channel" && fromTelegram ? "telegram" : v, payload.type),
         }));
     }
 
@@ -158,6 +172,7 @@ export async function listPendingReviews(db: Db): Promise<ReviewCard[]> {
         evidence: event.evidence,
         receivedAt: event.receivedAt,
         agentName: event.agentName,
+        channel: conversationChannel(event.conversationId),
       },
       data,
       phone: normalizePhone(payload.customer.phone)?.display ?? payload.customer.phone,

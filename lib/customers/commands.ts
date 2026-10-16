@@ -387,7 +387,7 @@ export async function addVehicle(
 export async function addInteraction(
   db: Db,
   customerId: string,
-  input: { channel: "whatsapp" | "telefone" | "balcao"; summary: string },
+  input: { channel: "whatsapp" | "telefone" | "balcao" | "telegram"; summary: string },
   now = new Date(),
 ) {
   return db.transaction(async (tx) => {

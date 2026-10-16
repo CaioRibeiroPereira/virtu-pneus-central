@@ -57,6 +57,13 @@
       "when": 1792161263901,
       "tag": "0007_revisao_data_passada",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792175704362,
+      "tag": "0008_canal_telegram_atendimento",
+      "breakpoints": true
     }
   ]
 }
