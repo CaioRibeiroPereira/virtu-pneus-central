@@ -33,6 +33,8 @@ for (const theme of THEMES)
       });
 
       test("telas do gestor", async ({ page }) => {
+        // ~16 telas com axe e captura de página inteira: contra a produção passa dos 60 s padrão.
+        test.setTimeout(180_000);
         await login(page);
         const pages: [string, string][] = [
           ["/hoje", "01-hoje"],
