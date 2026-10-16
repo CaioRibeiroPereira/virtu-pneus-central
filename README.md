@@ -103,4 +103,5 @@ tests/            unit, integration, e2e  docs/         diagnóstico, plano, aud
 - [`RESUMO_ENTREGA.md`](RESUMO_ENTREGA.md): antes × depois, testes e limitações.
 - [`DECISOES.md`](DECISOES.md): decisões com contexto, opções e motivo.
 - [`docs/AUDITORIA.md`](docs/AUDITORIA.md): o que foi feito em cada etapa, com os comandos.
+- [`docs/ROTEIRO_DE_TESTES.md`](docs/ROTEIRO_DE_TESTES.md): roteiro de testes manuais, passo a passo, com o resultado esperado.
 - [`docs/PLANO_DESENVOLVIMENTO.md`](docs/PLANO_DESENVOLVIMENTO.md): o plano seguido.
