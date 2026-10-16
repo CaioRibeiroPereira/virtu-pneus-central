@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classify, FALLBACK_EVERY_MS, planReply, type ReplyInput } from "@/lib/telegram/autoreply";
+import { classify, HANDOFF_TEXT, planReply, type ReplyInput } from "@/lib/telegram/autoreply";
 
 const shop = {
   name: "Virtù Pneus",
@@ -14,7 +14,7 @@ const base: ReplyInput = {
   hasPhone: true,
   customerName: "Caio Pereira",
   nextAppointment: null,
-  lastFallbackAt: null,
+  handedOff: false,
   now,
   shop,
 };
@@ -72,9 +72,7 @@ describe("respostas: só texto fixo ou dado do sistema", () => {
     ]) {
       const p = plan(text);
       expect(p.intent).toBe("outro");
-      expect(allText(p)).toBe(
-        "Recebemos sua mensagem! O dono da oficina vai te responder por aqui em instantes.",
-      );
+      expect(allText(p)).toBe(HANDOFF_TEXT);
       expect(allText(p)).not.toMatch(/R\$|\d/); // nenhum número, valor ou horário inventado
       expect(p.notifyOwner).toBe(true);
     }
@@ -98,11 +96,24 @@ describe("respostas: só texto fixo ou dado do sistema", () => {
     }
   });
 
-  it("'recebemos sua mensagem' no máximo a cada 30 minutos", () => {
-    const recent = new Date(now.getTime() - FALLBACK_EVERY_MS + 60_000);
-    const old = new Date(now.getTime() - FALLBACK_EVERY_MS - 60_000);
-    expect(plan("quanto custa?", { lastFallbackAt: recent }).messages).toEqual([]);
-    expect(plan("quanto custa?", { lastFallbackAt: old }).messages).toHaveLength(1);
+  it("passa para o dono uma vez; depois disso o Vito fica em silêncio em TUDO", () => {
+    const first = plan("quanto custa?");
+    expect(first.messages).toEqual([HANDOFF_TEXT]);
+    expect(first.markHandoff).toBe(true);
+    expect(HANDOFF_TEXT).not.toMatch(/instantes/); // não promete prazo
+    for (const text of ["e o balanceamento?", "qual o endereço?", "que horas abre?", "oi"]) {
+      const p = plan(text, { handedOff: true });
+      expect(p.messages).toEqual([]); // uma voz só: a do dono
+      expect(p.notifyOwner).toBe(true); // o dono fica sabendo de cada mensagem
+      expect(p.markHandoff).toBe(false);
+    }
+  });
+
+  it("perguntas que o Vito responde sozinho não passam a conversa para o dono", () => {
+    for (const text of ["oi", "que horas abre?", "qual o endereço?"]) {
+      expect(plan(text).markHandoff).toBe(false);
+    }
+    expect(plan("meu agendamento?", { nextAppointment: null }).markHandoff).toBe(true);
   });
 
   it("toda resposta possível está numa lista fechada (sem texto livre)", () => {

@@ -39,6 +39,11 @@ export async function replyTelegramAction(_prev: ReplyState, form: FormData): Pr
   await db
     .insert(telegramMessages)
     .values({ chatId: chat.chatId, author: "gestor", text: parsed.data.text });
+  // O dono assumiu a conversa: o Vito fica em silêncio por 12 h a partir daqui (D57).
+  await db
+    .update(telegramChats)
+    .set({ handedOffAt: new Date() })
+    .where(eq(telegramChats.chatId, chat.chatId));
   revalidatePath("/conversas");
   revalidatePath("/clientes/[id]", "page");
   return { ok: true };

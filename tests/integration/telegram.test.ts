@@ -120,7 +120,7 @@ describe("bot da oficina no Telegram", () => {
     );
   });
 
-  it("preço não é inventado: 'recebemos' (uma vez a cada 30 min) e o dono é avisado com o link da ficha", async () => {
+  it("preço não é inventado: passa para o dono uma vez; depois, silêncio e aviso ao dono a cada mensagem", async () => {
     const before = sent.length;
     await handleTelegramUpdate(textUpdate("quanto custa o alinhamento?"), deps());
     await handleTelegramUpdate(
@@ -141,6 +141,14 @@ describe("bot da oficina no Telegram", () => {
       .where(eq(telegramMessages.chatId, String(CHAT)));
     expect(rows.filter((r) => r.author === "cliente").length).toBe(7);
     expect(rows.some((r) => r.author === "vito" && r.intent === "agendamento")).toBe(true);
+  });
+});
+
+describe("conversa com o dono", () => {
+  it("depois de 12 h sem resposta do dono, o Vito volta a responder o que é seguro", async () => {
+    const later = new Date(NOW.getTime() + 13 * 60 * 60 * 1000);
+    await handleTelegramUpdate(textUpdate("que horas vocês abrem?"), deps(later));
+    expect(sent.at(-1)?.text).toBe("Nosso horário: seg a sex, 8h às 18h.");
   });
 });
 

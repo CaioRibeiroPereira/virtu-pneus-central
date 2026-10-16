@@ -7,7 +7,7 @@ import { appointments, customers, telegramChats, telegramMessages } from "@/db/s
 import { serviceTypeLabel } from "@/lib/labels";
 import { normalizePhone } from "@/lib/phone";
 import type { SendMessage, TelegramUpdate } from "./api";
-import { planReply, type NextAppointment, type ShopInfo } from "./autoreply";
+import { HANDOFF_MS, planReply, type NextAppointment, type ShopInfo } from "./autoreply";
 
 export type TelegramDeps = {
   db: Db;
@@ -203,18 +203,18 @@ export async function handleTelegramUpdate(
     nextAppointment: chat.customerId
       ? await nextAppointmentOf(db, chat.customerId, now)
       : undefined,
-    lastFallbackAt: chat.lastFallbackAt,
+    handedOff: !!chat.handedOffAt && now.getTime() - chat.handedOffAt.getTime() < HANDOFF_MS,
     now,
     shop: deps.shop,
   });
 
   await sendAll(deps, chatId, plan.messages, { askContact: plan.askContact, intent: plan.intent });
-  if (plan.markDisclosed || plan.markFallback) {
+  if (plan.markDisclosed || plan.markHandoff) {
     await db
       .update(telegramChats)
       .set({
         ...(plan.markDisclosed ? { disclosedAt: now } : {}),
-        ...(plan.markFallback ? { lastFallbackAt: now } : {}),
+        ...(plan.markHandoff ? { handedOffAt: now } : {}),
       })
       .where(eq(telegramChats.chatId, chatId));
   }

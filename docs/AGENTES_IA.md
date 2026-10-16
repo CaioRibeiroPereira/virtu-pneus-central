@@ -90,7 +90,11 @@ Telegram**. Ali o Vito **responde sozinho só o que é seguro**, sem IA gerando 
 | horário de funcionamento | texto fixo da oficina (`SHOP_HOURS`) |
 | endereço | texto fixo da oficina (`SHOP_ADDRESS`) |
 | "como está meu agendamento?" | o próximo agendamento **que está no sistema** (serviço, dia, hora, confirmado ou não) |
-| qualquer outra coisa (preço, estoque, "posso ir hoje?", "me dá desconto") | "Recebemos sua mensagem! O dono vai te responder por aqui" + aviso ao dono |
+| qualquer outra coisa (preço, estoque, "posso ir hoje?", "me dá desconto") | "Recebemos sua mensagem! O dono vai te responder por aqui em breve" + aviso ao dono — e a conversa **passa para o dono** |
+
+Depois da passagem (ou quando o dono responde), **o Vito fica em silêncio** naquela conversa —
+uma voz só, a do dono — e só avisa o dono de cada mensagem nova. Se o dono ficar 12 h sem
+responder, a conversa volta a ser um atendimento novo e o Vito volta a responder o que é seguro.
 
 A intenção é reconhecida por regras de código (`lib/telegram/autoreply.ts`, com testes de
 manipulação); a IA continua só na extração. No primeiro contato o bot avisa que é um assistente

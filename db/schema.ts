@@ -385,8 +385,11 @@ export const telegramChats = pgTable(
     customerId: uuid("customer_id"),
     /** Quando o aviso "sou um assistente automático" foi enviado (transparência/LGPD). */
     disclosedAt: timestamp("disclosed_at", { withTimezone: true }),
-    /** Último "recebemos sua mensagem": evita repetir a cada mensagem. */
-    lastFallbackAt: timestamp("last_fallback_at", { withTimezone: true }),
+    /**
+     * Quando a conversa passou para o dono (o Vito disse "o dono vai responder" ou o dono
+     * respondeu). Até HANDOFF_MS depois, o Vito fica em silêncio. (Coluna antiga: last_fallback_at.)
+     */
+    handedOffAt: timestamp("last_fallback_at", { withTimezone: true }),
     ...timestamps,
   },
   (t) => [index("telegram_chats_customer_idx").on(t.customerId)],
