@@ -361,3 +361,51 @@ export const auditLog = pgTable(
   },
   (t) => [index("audit_log_entity_idx").on(t.entityType, t.entityId, t.at)],
 );
+
+// ---------- Canal Telegram (D57) ----------
+// Conversa do cliente com o bot da oficina. O Vito responde sozinho só o que é seguro (texto fixo
+// ou dado do sistema); o resto o dono responde pela ficha. As conversas vão para a mesma extração
+// do WhatsApp (n8n → /api/agent-events).
+
+export const telegramAuthorEnum = pgEnum("telegram_author", ["cliente", "vito", "gestor"]);
+
+export const telegramChats = pgTable(
+  "telegram_chats",
+  {
+    /** Id do chat no Telegram (número grande: guardado como texto). */
+    chatId: text("chat_id").primaryKey(),
+    firstName: text("first_name"),
+    /** Só depois que o cliente toca em "Compartilhar meu telefone" (o Telegram não informa). */
+    phoneE164: text("phone_e164"),
+    customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
+    /** Quando o aviso "sou um assistente automático" foi enviado (transparência/LGPD). */
+    disclosedAt: timestamp("disclosed_at", { withTimezone: true }),
+    /** Último "recebemos sua mensagem": evita repetir a cada mensagem. */
+    lastFallbackAt: timestamp("last_fallback_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [index("telegram_chats_customer_idx").on(t.customerId)],
+);
+
+export const telegramMessages = pgTable(
+  "telegram_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    chatId: text("chat_id")
+      .notNull()
+      .references(() => telegramChats.chatId, { onDelete: "cascade" }),
+    author: telegramAuthorEnum("author").notNull(),
+    text: text("text").notNull(),
+    /** Intenção reconhecida pela resposta automática (só nas mensagens do Vito). */
+    intent: text("intent"),
+    /** update_id do Telegram: ele reenvia quando a resposta demora — único = idempotência. */
+    updateId: text("update_id"),
+    /** Quando esta mensagem do cliente foi enviada à extração (n8n). */
+    extractedAt: timestamp("extracted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("telegram_messages_chat_idx").on(t.chatId, t.createdAt),
+    uniqueIndex("telegram_messages_update_unique").on(t.updateId),
+  ],
+);

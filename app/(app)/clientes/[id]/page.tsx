@@ -12,6 +12,8 @@ import { TIMELINE_KINDS, type TimelineKind } from "@/lib/customers/timeline";
 import { QuickActions } from "@/components/quick-actions";
 import { ConfirmAppointment, QuoteActions } from "@/components/quote-actions";
 import { TaskActions } from "@/components/task-actions";
+import { TelegramThread } from "@/components/telegram-thread";
+import { telegramThread } from "@/lib/telegram/thread";
 
 export const metadata: Metadata = { title: "Ficha do cliente | Central de clientes" };
 export const dynamic = "force-dynamic";
@@ -30,6 +32,7 @@ export default async function FichaPage({
   if (!UUID.test(id)) notFound();
   const today = todayInStore();
   const detail = await getCustomerDetail(getDb(), id, today);
+  const thread = detail ? await telegramThread(getDb(), id) : null;
   if (!detail) notFound();
   const { customer: c } = detail;
   const filter = TIMELINE_KINDS.some(([k]) => k === tipo) ? (tipo as TimelineKind) : null;
@@ -141,6 +144,23 @@ export default async function FichaPage({
           </ul>
         )}
       </section>
+
+      {thread && (
+        <section className="section" aria-labelledby="telegram">
+          <h2 id="telegram" className="section-title">
+            Conversa no Telegram
+          </h2>
+          <TelegramThread
+            customerId={id}
+            messages={thread.messages.map((m) => ({
+              id: m.id,
+              author: m.author,
+              text: m.text,
+              when: formatDateTime(m.createdAt),
+            }))}
+          />
+        </section>
+      )}
 
       <section className="section" aria-labelledby="resumo">
         <h2 id="resumo" className="section-title">

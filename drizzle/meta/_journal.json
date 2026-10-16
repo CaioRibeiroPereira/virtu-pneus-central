@@ -29,6 +29,13 @@
       "when": 1792006055957,
       "tag": "0003_remove_tabela_legado",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792112663395,
+      "tag": "0004_canal_telegram",
+      "breakpoints": true
     }
   ]
 }

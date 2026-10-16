@@ -367,3 +367,94 @@ writeFileSync(
   JSON.stringify(digestWorkflow, null, 2) + "\n",
 );
 console.log("infra/n8n/workflows/vito-resumo-diario.json gerado");
+
+// ---------- conversas do Telegram → extração (D57) ----------
+// A cada minuto: conversas do Telegram prontas (paradas há 2 min, com telefone) → o MESMO webhook
+// de extração do WhatsApp → confirma no sistema. Nada de extração duplicada aqui.
+const appUrl = "($env.VITO_APP_URL || 'http://host.docker.internal:3000')";
+const telegramWorkflow = {
+  id: "vitoTelegramExtracao1",
+  name: "Vito — conversas do Telegram para a extração",
+  nodes: [
+    {
+      id: "c3f2e4a5-0001-4c1a-9b10-000000000001",
+      name: "A cada minuto",
+      type: "n8n-nodes-base.scheduleTrigger",
+      typeVersion: 1.2,
+      position: [0, 0],
+      parameters: { rule: { interval: [{ field: "minutes", minutesInterval: 1 }] } },
+    },
+    {
+      id: "c3f2e4a5-0002-4c1a-9b10-000000000002",
+      name: "Conversas prontas",
+      type: "n8n-nodes-base.httpRequest",
+      typeVersion: 4.2,
+      position: [240, 0],
+      credentials: { httpHeaderAuth: CREDENTIALS.agent },
+      parameters: {
+        method: "GET",
+        url: `={{ ${appUrl} + '/api/telegram/conversas' }}`,
+        ...headerAuth,
+        options: { timeout: 60000 },
+      },
+    },
+    {
+      id: "c3f2e4a5-0003-4c1a-9b10-000000000003",
+      name: "Uma conversa por item",
+      type: "n8n-nodes-base.code",
+      typeVersion: 2,
+      position: [480, 0],
+      parameters: {
+        jsCode: "return ($input.first().json.conversas || []).map((c) => ({ json: c }));",
+      },
+    },
+    {
+      id: "c3f2e4a5-0004-4c1a-9b10-000000000004",
+      name: "Enviar à extração",
+      type: "n8n-nodes-base.httpRequest",
+      typeVersion: 4.2,
+      position: [720, 0],
+      parameters: {
+        method: "POST",
+        // O workflow de extração, nesta mesma instância do n8n.
+        url: "http://localhost:5678/webhook/vito-conversa",
+        sendBody: true,
+        specifyBody: "json",
+        jsonBody:
+          "={{ JSON.stringify({ phone: $json.phone, conversation_id: $json.conversation_id, message_ids: $json.message_ids, messages: $json.messages }) }}",
+        options: { timeout: 30000 },
+      },
+    },
+    {
+      id: "c3f2e4a5-0005-4c1a-9b10-000000000005",
+      name: "Marcar como extraída",
+      type: "n8n-nodes-base.httpRequest",
+      typeVersion: 4.2,
+      position: [960, 0],
+      credentials: { httpHeaderAuth: CREDENTIALS.agent },
+      parameters: {
+        method: "POST",
+        url: `={{ ${appUrl} + '/api/telegram/conversas/' + $('Uma conversa por item').item.json.chat_id + '/extraida' }}`,
+        ...headerAuth,
+        sendBody: true,
+        specifyBody: "json",
+        jsonBody: "={{ JSON.stringify({ ate: $('Uma conversa por item').item.json.ate }) }}",
+        options: { timeout: 30000 },
+      },
+    },
+  ],
+  connections: {
+    "A cada minuto": { main: [[{ node: "Conversas prontas", type: "main", index: 0 }]] },
+    "Conversas prontas": { main: [[{ node: "Uma conversa por item", type: "main", index: 0 }]] },
+    "Uma conversa por item": { main: [[{ node: "Enviar à extração", type: "main", index: 0 }]] },
+    "Enviar à extração": { main: [[{ node: "Marcar como extraída", type: "main", index: 0 }]] },
+  },
+  settings: { executionOrder: "v1", timezone: "America/Sao_Paulo" },
+  pinData: {},
+};
+
+writeFileSync(
+  "infra/n8n/workflows/vito-telegram-extracao.json",
+  JSON.stringify(telegramWorkflow, null, 2) + "\n",
+);
+console.log("infra/n8n/workflows/vito-telegram-extracao.json gerado");

@@ -923,3 +923,36 @@ details > summary::-webkit-details-marker {
     display: none;
   }
 }
+
+/* Conversa do Telegram na ficha (D57) */
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 420px;
+  overflow-y: auto;
+}
+.chat-msg {
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 16px;
+  background: var(--surface-muted);
+}
+.chat-msg p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.chat-gestor,
+.chat-vito {
+  align-self: flex-end;
+  background: var(--brand-soft);
+}
+.chat-meta {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}

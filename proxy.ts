@@ -4,7 +4,8 @@ import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/token";
 // Primeira barreira: toda página e API exige a sessão do gestor, exceto o login e as
 // integrações dos agentes (que usam o próprio token Bearer). As rotas e Server Actions
 // conferem a sessão de novo (requireSession), como recomenda a documentação do Next.
-const PUBLIC_PATHS = ["/login", "/api/agent-events", "/api/agenda/hoje"];
+// /api/telegram: o webhook confere o segredo do Telegram e as rotas do n8n o token Bearer.
+const PUBLIC_PATHS = ["/login", "/api/agent-events", "/api/agenda/hoje", "/api/telegram"];
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
