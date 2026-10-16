@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { getDb, withTransactionalDb } from "@/db";
 import { agentEvents, reviewItems } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
+import { parseServiceItems } from "@/lib/customers/input";
 import { approveReview, rejectReview } from "@/lib/review/commands";
 
 export type ReviewFormState = { ok?: boolean; message?: string; error?: string };
@@ -56,7 +57,12 @@ export async function approveReviewAction(
   if (choice === "new" && !options.createCustomerName) {
     return { error: "Informe o nome do novo cliente." };
   }
-  const result = await withTransactionalDb((db) => approveReview(db, reviewId, options));
+  // "Serviço feito": itens do estoque confirmados pelo gestor (mesmos campos da ficha — D59).
+  const { items: stockItems, error: itemsError } = parseServiceItems(form);
+  if (itemsError) return { error: itemsError };
+  const result = await withTransactionalDb((db) =>
+    approveReview(db, reviewId, { ...options, stockItems }),
+  );
   if (!result.ok) return { error: result.message };
   refresh(result.customerId);
   return { ok: true, message: "Sugestão aprovada e aplicada." };

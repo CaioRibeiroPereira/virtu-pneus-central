@@ -11,8 +11,9 @@ import {
 const TODAY = "2026-10-14"; // quarta-feira
 
 describe("presets do simulador (§12.3)", () => {
-  it("são as 6 conversas do plano", () => {
-    expect(PRESETS).toHaveLength(6);
+  it("são as 6 conversas do plano + a de serviço feito (D59)", () => {
+    expect(PRESETS).toHaveLength(7);
+    expect(PRESETS.at(-1)?.id).toBe("reenvio");
   });
 
   it.each(PRESETS.map((p) => [p.id]))("%s gera eventos válidos pelo contrato do §8", (id) => {

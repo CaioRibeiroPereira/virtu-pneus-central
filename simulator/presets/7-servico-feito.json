@@ -1,0 +1,27 @@
+{
+  "id": "servico-feito",
+  "title": "Loja avisa que o serviço foi feito (baixa de estoque)",
+  "expected": "Serviço feito mexe com histórico e estoque: vai para a revisão com a baixa sugerida (4 × Goodyear 185/60 R15); a baixa acontece ao aprovar.",
+  "phone": "(19) 90000-0002",
+  "messages": [
+    {
+      "from": "vito",
+      "text": "Prontinho, Fernanda! Trocamos os 4 pneus 185/60 R15 do HB20, ficou R$ 1.520,00. Pode buscar quando quiser."
+    },
+    { "from": "cliente", "text": "Ótimo, passo aí às 17h. Obrigada!" }
+  ],
+  "events": [
+    {
+      "type": "service.completed",
+      "confidence": 0.93,
+      "evidence": "Trocamos os 4 pneus 185/60 R15 do HB20, ficou R$ 1.520,00.",
+      "customer": { "phone": "(19) 90000-0002" },
+      "data": {
+        "type": "troca_pneus",
+        "description": "Troca de 4 pneus 185/60 R15 (HB20)",
+        "performed_at": "$NOW",
+        "total": 1520
+      }
+    }
+  ]
+}

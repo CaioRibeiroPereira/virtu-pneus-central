@@ -726,3 +726,16 @@ npx -y lighthouse@13.5.0 https://virtu-pneus-central.vercel.app/hoje [--preset=d
 npm run db:migrate && npm run db:seed     # migração 0006 + demo com equipe, tabela e estoque
 npm run build && npx playwright test      # 12 passando
 ```
+
+---
+
+## Etapa 14 — Baixa de estoque no serviço feito avisado pelo Vito (16/10/2026)
+
+**Objetivo:** resolver a limitação da D58. Decisão D59.
+
+- `lib/oficina/suggest.ts`: sugestão pura (medida + quantidade + exatamente um pneu da medida; na dúvida, explica sem chutar).
+- `lib/review/stock-suggestion.ts`: prepara as sugestões dos cartões de serviço feito, olhando a conversa e o orçamento do cliente.
+- `lib/review/commands.ts`: `approveReview` aceita `stockItems` e dá baixa na mesma transação. `StockError` vira `insufficient_stock`, sem aplicar nada.
+- `components/review-card.tsx`: campos "Itens do estoque usados", preenchidos com a sugestão.
+- Simulador: conversa 7 (`simulator/presets/7-servico-feito.json`).
+- Testes: 230 de unidade e integração; 13 E2E (o novo fluxo D59 de ponta a ponta incluído).

@@ -35,7 +35,7 @@ de IA). Reconstrução do protótipo do desafio do Grupo Virtù, com o diagnóst
 | **Estoque** | Pneus e itens, entrada de mercadoria, ajuste por contagem, histórico e alerta de estoque baixo; baixa automática ao registrar um serviço com itens na ficha |
 | **Serviços** | Tabela de serviços e preços da oficina — preenche orçamentos e serviços na ficha |
 | **Equipe** | Funcionários e o que está com cada um (responsável nas ações e nos serviços) |
-| **Simulador** (teste, fora do menu) | 6 conversas fictícias que chamam o endpoint real dos agentes, sem precisar de IA — em `/simulador` ou **Mais → Ferramentas de teste** |
+| **Simulador** (teste, fora do menu) | 7 conversas fictícias que chamam o endpoint real dos agentes, sem precisar de IA — em `/simulador` ou **Mais → Ferramentas de teste** |
 
 Regras automáticas (`lib/rules/`): orçamento sem resposta em 3 dias → follow-up (R1); serviço feito →
 pós-venda em 7 dias (R2) e retorno comercial em 180 dias (R3); agendamento → confirmar na véspera

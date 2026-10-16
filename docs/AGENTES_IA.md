@@ -59,7 +59,7 @@ tipos TypeScript e o JSON Schema pedido à IA saem do mesmo zod).
 | `task.suggested` | cria ação na tela Hoje | baixo |
 | `appointment.requested` | cria agendamento (dispara R4, confirmar na véspera) | baixo |
 | `quote.status_changed` | aprova/recusa orçamento | **alto: sempre revisão** |
-| `service.completed` | registra serviço (dispara R2 e R3) | **alto: sempre revisão** |
+| `service.completed` | registra serviço (dispara R2 e R3); na Revisão, o sistema **sugere a baixa do estoque** pela medida e quantidade da conversa ou do orçamento, e o gestor confirma (D59) | **alto: sempre revisão** |
 
 ### Respostas do endpoint
 
@@ -142,7 +142,7 @@ O provedor é escolhido no workflow do n8n (`provider` na conversa ou `VITO_PROV
 
 ## Como testar
 
-- **Sem IA, na demo publicada:** tela **Simulador** — 6 conversas fictícias que chamam o endpoint
+- **Sem IA, na demo publicada:** tela **Simulador** — 7 conversas fictícias que chamam o endpoint
   real por HTTP (inclusive o reenvio, que mostra a idempotência).
 - **Com IA:** `infra/n8n/README.md` (importar o workflow e enviar `exemplo-conversa.json`).
 - **Medindo a IA:** `npx tsx --env-file=.env.local scripts/avaliar-extracao.ts --provedor ambos --salvar`.

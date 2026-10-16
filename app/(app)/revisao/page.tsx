@@ -10,6 +10,7 @@ import {
   recentDecisions,
 } from "@/lib/review/queries";
 import { ReviewCard } from "@/components/review-card";
+import { stockSuggestions } from "@/lib/review/stock-suggestion";
 
 export const metadata: Metadata = { title: "Revisão | Central de clientes" };
 export const dynamic = "force-dynamic";
@@ -27,6 +28,7 @@ export default async function RevisaoPage() {
     customerOptions(db),
     recentDecisions(db),
   ]);
+  const stock = await stockSuggestions(db, cards);
   const labels = Object.fromEntries(
     [...new Set(cards.flatMap((c) => Object.keys(c.data)))].map((k) => [k, fieldLabel(k)]),
   );
@@ -53,7 +55,17 @@ export default async function RevisaoPage() {
       ) : (
         <ul className="stack">
           {cards.map((card) => (
-            <ReviewCard key={card.id} card={card} customers={customers} fieldLabels={labels} />
+            <ReviewCard
+              key={card.id}
+              card={card}
+              customers={customers}
+              fieldLabels={labels}
+              stock={
+                stock.byReview[card.id]
+                  ? { products: stock.products, suggestion: stock.byReview[card.id] }
+                  : undefined
+              }
+            />
           ))}
         </ul>
       )}

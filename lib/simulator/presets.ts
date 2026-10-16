@@ -8,6 +8,7 @@ import p3 from "@/simulator/presets/3-agenda-alinhamento.json";
 import p4 from "@/simulator/presets/4-reclamacao-pos-troca.json";
 import p5 from "@/simulator/presets/5-numero-desconhecido.json";
 import p6 from "@/simulator/presets/6-reenvio.json";
+import p7 from "@/simulator/presets/7-servico-feito.json";
 import { addDays, storeTimeToUtc, type DateOnly } from "@/lib/dates";
 
 export type PresetMessage = { from: string; text: string };
@@ -28,7 +29,8 @@ export type Preset = {
   replays?: string;
 };
 
-export const PRESETS: Preset[] = [p1, p2, p3, p4, p5, p6] as Preset[];
+// O reenvio fica por último (repete a conversa 1). A 7 mostra a baixa de estoque na Revisão (D59).
+export const PRESETS: Preset[] = [p1, p2, p3, p4, p5, p7, p6] as Preset[];
 
 /** Próximo sábado depois de `today` (nunca o próprio dia). */
 export function nextSaturday(today: DateOnly): DateOnly {

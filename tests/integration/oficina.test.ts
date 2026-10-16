@@ -3,7 +3,9 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { count, eq, sql } from "drizzle-orm";
 import type { Db } from "@/db";
-import { customers, products, services, stockMovements } from "@/db/schema";
+import { customers, products, reviewItems, services, stockMovements } from "@/db/schema";
+import { processAgentEvent } from "@/lib/agent/process";
+import { approveReview } from "@/lib/review/commands";
 import { resetDemoData } from "@/db/reset";
 import { addService, addTask } from "@/lib/customers/commands";
 import {
@@ -185,5 +187,68 @@ describe("seed da demonstração", () => {
     ]);
     const [{ n }] = await db.select({ n: count() }).from(stockMovements);
     expect(n).toBe(7); // um "estoque inicial" por produto
+  });
+});
+
+describe("serviço feito vindo do Vito: baixa confirmada na Revisão (D59)", () => {
+  const serviceEvent = (n: number) => ({
+    schema_version: "1.0" as const,
+    event_id: `teste-servico-vito-${n}`,
+    type: "service.completed" as const,
+    occurred_at: "2026-10-16T15:00:00-03:00",
+    source: { channel: "whatsapp" as const, conversation_id: `conv-servico-${n}`, message_ids: [] },
+    agent: { name: "vito-extrator", model: "teste", prompt_version: "v" },
+    confidence: 0.95,
+    evidence: "Trocamos os 4 pneus 205/55 R16, ficou R$ 1.840",
+    customer: { phone: "(19) 90000-0001" }, // Ricardo Alves, do seed
+    data: {
+      type: "troca_pneus" as const,
+      description: "Troca de 4 pneus 205/55 R16",
+      performed_at: "2026-10-16T15:00:00-03:00",
+      total: 1840,
+    },
+  });
+  const pendingReviewFor = async (n: number) => {
+    const out = await processAgentEvent(db, serviceEvent(n), { threshold: 0.85, today: TODAY });
+    if (out.status !== "queued_for_review") throw new Error("esperava ir para a revisão");
+    return out.reviewId;
+  };
+  const pirelli = async () =>
+    (await db.select().from(products).where(eq(products.name, "Pirelli Cinturato P1")))[0];
+
+  it("aprovar com os itens: serviço criado e baixa ligada a ele", async () => {
+    const before = await pirelli();
+    const reviewId = await pendingReviewFor(1);
+    const result = await approveReview(
+      db,
+      reviewId,
+      { stockItems: [{ productId: before.id, quantity: 4 }] },
+      TODAY,
+    );
+    expect(result.ok).toBe(true);
+    expect((await pirelli()).quantity).toBe(before.quantity - 4);
+    const d = await productDetail(db, before.id);
+    expect(d?.movements[0]).toMatchObject({
+      kind: "saida_servico",
+      quantity: -4,
+      customerName: "Ricardo Alves",
+    });
+  });
+
+  it("estoque insuficiente: nada é aplicado e a sugestão continua pendente", async () => {
+    const before = await pirelli();
+    const services0 = await serviceCount();
+    const reviewId = await pendingReviewFor(2);
+    const result = await approveReview(
+      db,
+      reviewId,
+      { stockItems: [{ productId: before.id, quantity: before.quantity + 1 }] },
+      TODAY,
+    );
+    expect(result).toMatchObject({ ok: false, reason: "insufficient_stock" });
+    expect((await pirelli()).quantity).toBe(before.quantity);
+    expect(await serviceCount()).toBe(services0);
+    const [review] = await db.select().from(reviewItems).where(eq(reviewItems.id, reviewId));
+    expect(review.status).toBe("pendente");
   });
 });

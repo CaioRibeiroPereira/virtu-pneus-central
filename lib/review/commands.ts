@@ -9,6 +9,7 @@ import { agentEventSchema, type AgentEvent } from "@/lib/agent/schema";
 import { todayInStore } from "@/lib/dates";
 import { normalizePhone } from "@/lib/phone";
 import { syncAutoTasks } from "@/lib/rules/auto-tasks";
+import { consumeForService, StockError, type ServiceItem } from "@/lib/oficina/inventory";
 
 export type ApproveOptions = {
   /** Campos de `data` alterados pelo gestor ("editar e aprovar"). */
@@ -18,13 +19,16 @@ export type ApproveOptions = {
   /** ...ou criar um cliente novo com o telefone da conversa. */
   createCustomerName?: string;
   note?: string;
+  /** "Serviço feito": itens do estoque confirmados pelo gestor — baixa na mesma transação (D59). */
+  stockItems?: ServiceItem[];
 };
 
 export type DecisionResult =
   | { ok: true; customerId: string | null }
   | {
       ok: false;
-      reason: "not_found" | "already_decided" | "needs_customer" | "invalid_edit";
+      reason:
+        "not_found" | "already_decided" | "needs_customer" | "invalid_edit" | "insufficient_stock";
       message: string;
     };
 
@@ -42,6 +46,24 @@ export async function approveReview(
   reviewId: string,
   options: ApproveOptions = {},
   today = todayInStore(),
+): Promise<DecisionResult> {
+  try {
+    return await approveInTransaction(db, reviewId, options, today);
+  } catch (error) {
+    // Falta de estoque: a transação inteira foi desfeita (nem o serviço ficou); a sugestão
+    // continua pendente e o gestor vê o motivo.
+    if (error instanceof StockError) {
+      return { ok: false, reason: "insufficient_stock", message: error.message };
+    }
+    throw error;
+  }
+}
+
+async function approveInTransaction(
+  db: Db,
+  reviewId: string,
+  options: ApproveOptions,
+  today: string,
 ): Promise<DecisionResult> {
   return db.transaction(async (tx) => {
     const row = await loadPending(tx, reviewId);
@@ -116,6 +138,10 @@ export async function approveReview(
       // Em conflito com edição humana, aprovar significa aceitar o valor do agente.
       overwrite: row.review.reason === "conflito_edicao_humana",
     });
+    // "Serviço feito" vindo do Vito: o gestor confirmou quais itens saíram do estoque.
+    const stockItems = parsed.data.type === "service.completed" ? (options.stockItems ?? []) : [];
+    const service = applied.find((a) => a.entity === "service");
+    if (stockItems.length && service) await consumeForService(tx, service.id, stockItems);
 
     const status = edited ? "aprovado_editado" : "aprovado";
     await tx
@@ -140,6 +166,7 @@ export async function approveReview(
       after: {
         status,
         ...(edited ? { edicoes: options.editedData } : {}),
+        ...(stockItems.length ? { itens_estoque: stockItems } : {}),
         note: options.note ?? null,
       },
     });

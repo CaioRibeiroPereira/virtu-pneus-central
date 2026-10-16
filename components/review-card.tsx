@@ -11,6 +11,7 @@ import {
 } from "@/app/(app)/revisao/actions";
 import { reviewReasonLabel } from "@/lib/labels";
 import type { ReviewCard as Card } from "@/lib/review/queries";
+import type { StockSuggestion } from "@/lib/oficina/suggest";
 
 const TYPE_LABEL: Record<string, string> = {
   "customer.upserted": "Atualizar dados do cliente",
@@ -27,10 +28,13 @@ export function ReviewCard({
   card,
   customers,
   fieldLabels,
+  stock,
 }: {
   card: Card;
   customers: { id: string; name: string; phone: string | null }[];
   fieldLabels: Record<string, string>;
+  /** "Serviço feito": produtos do estoque e a sugestão de baixa (D59). */
+  stock?: { products: { id: string; label: string }[]; suggestion: StockSuggestion };
 }) {
   // O aviso sai dentro da própria ação: depois de decidida, a sugestão some da lista e este
   // componente é desmontado — um useEffect não chegaria a rodar.
@@ -171,6 +175,51 @@ export function ReviewCard({
                 </div>
               ))}
             </div>
+          </fieldset>
+        )}
+
+        {card.event.type === "service.completed" && stock && stock.products.length > 0 && (
+          <fieldset style={{ border: 0, padding: 0, margin: "0 0 12px" }}>
+            <legend style={{ fontWeight: 700, marginBottom: 6 }}>
+              Itens do estoque usados (baixa ao aprovar)
+            </legend>
+            {stock.suggestion.note && (
+              <p className="muted" style={{ marginBottom: 8 }}>
+                <Sparkles aria-hidden="true" size={14} style={{ verticalAlign: "-2px" }} />{" "}
+                {stock.suggestion.note}
+              </p>
+            )}
+            {[1, 2, 3].map((n) => {
+              const suggested = stock.suggestion.items[n - 1];
+              return (
+                <div key={n} className="form-grid" style={{ gridTemplateColumns: "1fr 110px" }}>
+                  <div className="field">
+                    <label htmlFor={`${card.id}-item-${n}`}>Produto {n}</label>
+                    <select
+                      id={`${card.id}-item-${n}`}
+                      name={`item_product_${n}`}
+                      defaultValue={suggested?.productId ?? ""}
+                    >
+                      <option value="">—</option>
+                      {stock.products.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label htmlFor={`${card.id}-qty-${n}`}>Qtd.</label>
+                    <input
+                      id={`${card.id}-qty-${n}`}
+                      name={`item_qty_${n}`}
+                      inputMode="numeric"
+                      defaultValue={suggested ? String(suggested.quantity) : ""}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </fieldset>
         )}
 

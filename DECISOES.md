@@ -353,8 +353,18 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
   - É feita com `UPDATE … SET quantidade = quantidade − n WHERE quantidade >= n`: com dois registros simultâneos, o estoque nunca fica negativo (a lição da D51). O banco ainda tem `CHECK (quantity >= 0)`.
   - Se faltar qualquer item, **nada é gravado, nem o serviço**, e o formulário diz quanto há.
   - O mesmo produto em duas linhas é somado antes de conferir.
-  - Serviços registrados pelo Vito (aprovados na Revisão) não dão baixa: a conversa não diz quais pneus saíram.
+  - ~~Serviços registrados pelo Vito (aprovados na Revisão) não dão baixa.~~ Resolvido na D59.
 - **Tabela de serviços:** nome, tipo, preço e tempo médio. Na ficha, "Usar da tabela de serviços" preenche o orçamento ou o serviço (dá para ajustar antes de salvar).
 - **Equipe:** nome, função, telefone e ativo. "Responsável" nas próximas ações e "Quem fez" nos serviços; a página de cada funcionário mostra as ações pendentes e os serviços feitos; o cartão do Hoje mostra o responsável.
 - Seed: 3 funcionários, 6 serviços na tabela e 7 produtos, sendo 3 abaixo do mínimo, para o alerta aparecer na demo. O "Reiniciar demonstração" recria tudo (e continua preservando as conversas do Telegram).
 - Acessibilidade: as 5 telas novas entraram no axe (2 temas × 2 larguras), com 0 violações. O axe também achou um problema real na tela Conversas: a lista de mensagens com rolagem não era alcançável pelo teclado (WCAG 2.1.1). Agora a área é uma região focável e com nome. Esse problema explica a falha "não reproduzida" da etapa 11: ele só aparece quando a conversa é longa o bastante para rolar.
+
+**D59 — Baixa de estoque para o "serviço feito" avisado pelo Vito** (16/10)
+- Contexto: a D58 deixou de fora os serviços que vêm do Vito (`service.completed`, aprovados na Revisão), porque a conversa não diz com segurança quais itens saíram do estoque. O Caio pediu para resolver.
+- Escolha: **a IA sugere e o gestor confirma** (D6). O estoque é dinheiro; a IA nunca dá baixa sozinha.
+  - **Sugestão** (`lib/oficina/suggest.ts`, função pura): medida de pneu citada na conversa (ou, sem isso, no orçamento do cliente, de preferência o aprovado) e quantidade citada ("4 pneus", "dois pneus"; a quantidade da conversa vale mais que a do orçamento).
+  - **Só sugere com certeza:** se houver **exatamente um** pneu ativo daquela medida no estoque. Com dois da mesma medida, sem quantidade ou sem o pneu cadastrado, **não chuta** e explica o motivo.
+  - **Revisão:** o cartão de "serviço feito" ganha "Itens do estoque usados", já preenchido com a sugestão, editável e com a explicação.
+  - **Aprovação:** a baixa acontece **na mesma transação** (mesma função da ficha, `consumeForService`). Se faltar estoque, nada é gravado, a sugestão continua pendente e o motivo aparece no cartão. A auditoria da decisão registra os itens.
+- Demonstração: a conversa 7 do simulador, "Loja avisa que o serviço foi feito", traz a Fernanda com 4 pneus 185/60 R15. A sugestão é 4 × Goodyear EfficientGrip (8 → 4 ao aprovar).
+- Testes: 7 de unidade da sugestão, 2 de integração (aprovar com baixa; estoque insuficiente sem aplicar nada) e um E2E de ponta a ponta (simulador → Revisão com sugestão preenchida → aprovar → estoque e histórico).

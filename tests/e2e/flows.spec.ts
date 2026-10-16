@@ -83,3 +83,42 @@ test("Simulador → aplica, reenvio é ignorado, alto impacto vai para a revisã
   await expect(page.getByText("Mariana Lopes").first()).toBeVisible();
   await expect(page.getByText(/Criado pelo Vito/).first()).toBeVisible();
 });
+
+test("Serviço feito pelo Vito → Revisão com a baixa sugerida → aprovar → estoque desce (D59)", async ({
+  page,
+}) => {
+  // Estoque antes: Goodyear 185/60 R15 (o seed tem 8).
+  await page.goto("/estoque");
+  const goodyear = page
+    .getByRole("listitem")
+    .filter({ hasText: "Goodyear EfficientGrip 185/60 R15" });
+  await expect(goodyear).toContainText("8 em estoque");
+
+  await page.goto("/simulador");
+  await page.getByRole("button", { name: /Loja avisa que o serviço foi feito/ }).click();
+  await page.getByRole("button", { name: /Processar com o Vito/ }).click();
+  const respostas = page.getByRole("list", { name: "Respostas do sistema" });
+  await expect(respostas.getByText("Enviado para a sua revisão", { exact: true })).toBeVisible({
+    timeout: 30_000,
+  });
+
+  // Revisão: a sugestão já vem preenchida; o gestor confere e aprova.
+  await page.goto("/revisao");
+  const card = page
+    .getByRole("listitem")
+    .filter({ hasText: "Registrar serviço feito" })
+    .filter({ hasText: "Fernanda Costa" })
+    .first();
+  await expect(card.getByText(/Sugestão pela conversa: 4 × Goodyear EfficientGrip/)).toBeVisible();
+  await expect(card.getByLabel("Produto 1")).toHaveValue(/[0-9a-f-]{36}/);
+  await expect(card.getByLabel("Qtd.").first()).toHaveValue("4");
+  await card.getByRole("button", { name: "Aprovar", exact: true }).click();
+  await expect(page.getByText("Sugestão aprovada e aplicada.")).toBeVisible({ timeout: 30_000 });
+
+  // Estoque depois: 8 − 4 = 4, com a saída ligada à Fernanda no histórico.
+  await page.goto("/estoque");
+  await expect(goodyear).toContainText("4 em estoque");
+  await goodyear.getByRole("link").click();
+  await expect(page.getByText(/Saída \(serviço\) -4/)).toBeVisible();
+  await expect(page.getByRole("link", { name: "Fernanda Costa" })).toBeVisible();
+});
