@@ -38,21 +38,28 @@ Prints: antes em [`docs/diagnostico-screenshots/`](docs/diagnostico-screenshots/
 | IA | `scripts/avaliar-extracao.ts` | ver [`docs/AVALIACAO_IA.md`](docs/AVALIACAO_IA.md) e a seção abaixo |
 | Navegação guiada | Playwright na produção | roteiro da demo percorrido em 375 e 1280 px, com prints de cada tela |
 
-**Lighthouse — produção, 15/10/2026** (acessibilidade / desempenho / boas práticas / SEO):
+**Lighthouse 13.5 — produção, 16/10/2026, visual novo (D55)**, nos dois temas
+(acessibilidade / desempenho / boas práticas / SEO):
 
-| Tela | Celular | Computador |
-|---|---|---|
-| Login | 100 / 96 / 100 / 100 | 100 / 100 / 100 / 100 |
-| Hoje | 100 / 86 / 100 / 90 | 100 / 97 / 100 / 90 |
-| Clientes | 100 / 95 / 100 / 90 | 100 / 100 / 100 / 90 |
-| Ficha do cliente | 100 / 97 / 100 / 90 | 100 / 100 / 100 / 90 |
-| Revisão | 100 / 99 / 100 / 90 | 100 / 100 / 100 / 90 |
-| Simulador | 100 / 99 / 100 / 90 | 100 / 100 / 100 / 90 |
+| Tela | Celular — claro | Celular — escuro | Computador — claro | Computador — escuro |
+|---|---|---|---|---|
+| Login | 100 / 98 / 100 / 100 | 100 / 96 / 100 / 100 | 100 / 100 / 100 / 100 | 100 / 100 / 100 / 100 |
+| Hoje | 100 / 94 / 100 / 90 | 100 / 93 / 100 / 90 | 100 / 97 / 100 / 90 | 100 / 96 / 100 / 90 |
+| Clientes | 100 / 97 / 100 / 90 | 100 / 98 / 100 / 90 | 100 / 100 / 100 / 90 | 100 / 100 / 100 / 90 |
+| Ficha do cliente | 100 / 98 / 100 / 90 | 100 / 98 / 100 / 90 | 100 / 99 / 100 / 90 | 100 / 99 / 100 / 90 |
+| Revisão | 100 / 99 / 100 / 90 | 100 / 95 / 100 / 90 | 100 / 100 / 100 / 90 | 100 / 100 / 100 / 90 |
+| Conversas | 100 / 99 / 100 / 90 | 100 / 94 / 100 / 90 | 100 / 99 / 100 / 90 | 100 / 100 / 100 / 90 |
+| Simulador | 100 / 98 / 100 / 90 | 100 / 95 / 100 / 90 | 100 / 100 / 100 / 90 | 100 / 100 / 100 / 90 |
 
-Antes (diagnóstico): acessibilidade 89–95. O SEO 90 vem só do link **"Mais"** do menu inferior,
-que o Lighthouse marca como texto genérico. Mantive o "Mais" de propósito: é o padrão de barra
-inferior no celular e o painel é privado, atrás de login. O desempenho de 86 no Hoje (celular) é sob
-4G lento simulado, com LCP de 1,4 s e nenhum deslocamento de layout.
+- **Acessibilidade 100 nas 28 medições.** Antes, no protótipo (diagnóstico): 89–95.
+- **Desempenho:** de 93 a 100 (o Hoje no celular subiu de 86, no visual anterior, para 93–94).
+  Medido sob 4G lento simulado: no pior caso, o maior conteúdo aparece em 2,2 s e o layout
+  quase não se desloca durante o carregamento (CLS 0,001).
+- **SEO 90:** vem só do link **"Mais"** do menu, que o Lighthouse marca como texto genérico.
+  Mantive o "Mais" de propósito: é o padrão de menu de celular e o painel é privado, atrás de login.
+- **Como medi:** sessão de login passada por cabeçalho; tema escuro emulado pela preferência do
+  Chrome (`--blink-settings=preferredColorScheme=0`), conferida antes: a página abre com
+  `data-theme="dark"`.
 
 ## Agentes de IA
 

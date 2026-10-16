@@ -681,3 +681,21 @@ npx vitest run                         # 179 passando (2 rodadas seguidas)
 - Problema 1: **sem cadastro, a conversa não aparecia no site**. Criada a tela Conversas.
 - Problema 2: **os E2E apagaram a conversa real**. O "Reiniciar demonstração" que eles executam faz `TRUNCATE customers CASCADE`, que alcançava as tabelas do Telegram pela chave estrangeira. Corrigido (migração 0005 e teste). É mais um efeito do banco compartilhado entre demo e testes (D37).
 - Testes: 207 de unidade e integração. Os E2E passaram (12) em três rodadas seguidas. Numa rodada anterior, 2 testes de acessibilidade do tema escuro falharam e **não se reproduziram** em três novas rodadas; a causa não foi identificada.
+
+---
+
+## Etapa 12 — Lighthouse no visual novo, nos dois temas (16/10/2026)
+
+**Objetivo:** os números de Lighthouse do RESUMO eram do visual anterior; medir de novo no estilo D (D55), claro e escuro.
+
+```bash
+# 1) tema escuro emulado pela preferência do Chrome — conferido antes com Playwright:
+#    preferredColorScheme=0 → data-theme="dark"; =1 → "light"
+# 2) sessão: login na produção com Playwright; cookie em headers.json (só na pasta temporária)
+npx -y lighthouse@13.5.0 https://virtu-pneus-central.vercel.app/hoje [--preset=desktop] \
+  --only-categories=accessibility,performance,best-practices,seo --extra-headers=headers.json \
+  --chrome-flags="--headless=new --blink-settings=preferredColorScheme=0"
+```
+- 7 telas (login, Hoje, Clientes, Ficha, Revisão, Conversas, Simulador) × celular/computador × claro/escuro = 28 medições. Em todas, o endereço final foi a tela pedida (a sessão funcionou).
+- **Acessibilidade 100 nas 28.** Desempenho 93–100; boas práticas 100; SEO 90 só pelo link "Mais" (mantido de propósito).
+- Tabela completa no RESUMO_ENTREGA. O cookie de sessão foi apagado da pasta temporária depois das medições.
