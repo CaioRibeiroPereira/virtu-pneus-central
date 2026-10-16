@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MessageCircle, Pencil, Phone, Sparkles } from "lucide-react";
 import { getDb } from "@/db";
-import { describeDue, formatDate, formatDateTime, todayInStore } from "@/lib/dates";
+import { describeDue, formatDate, formatDateTime, storeDateOf, todayInStore } from "@/lib/dates";
 import { formatMoney, originLabel, serviceTypeLabel, stageLabel } from "@/lib/labels";
 import { whatsappMessage } from "@/lib/messages";
 import { whatsappLink } from "@/lib/phone";
@@ -15,6 +15,8 @@ import { TaskActions } from "@/components/task-actions";
 import { TelegramThread } from "@/components/telegram-thread";
 import { telegramThread } from "@/lib/telegram/thread";
 import { oficinaLists } from "@/lib/oficina/lists";
+import { QuoteRecordActions, ServiceRecordActions } from "@/components/record-actions";
+import { DeleteCustomer } from "@/components/delete-customer";
 
 export const metadata: Metadata = { title: "Ficha do cliente | Central de clientes" };
 export const dynamic = "force-dynamic";
@@ -278,6 +280,30 @@ export default async function FichaPage({
                   )}
                 </p>
                 {item.detail && <p>{item.detail}</p>}
+                {item.ref?.kind === "quote" &&
+                  (() => {
+                    const q = detail.quotes.find((x) => x.id === item.ref!.id);
+                    return q ? <QuoteRecordActions quote={q} /> : null;
+                  })()}
+                {item.ref?.kind === "service" &&
+                  (() => {
+                    const s = detail.services.find((x) => x.id === item.ref!.id);
+                    return s ? (
+                      <ServiceRecordActions
+                        today={today}
+                        employees={lists.employees}
+                        service={{
+                          id: s.id,
+                          type: s.type,
+                          description: s.description,
+                          date: storeDateOf(s.performedAt),
+                          total: s.total,
+                          km: s.km,
+                          employeeId: s.employeeId,
+                        }}
+                      />
+                    ) : null;
+                  })()}
                 {item.evidence && (
                   <details style={{ marginTop: 4 }}>
                     <summary
@@ -306,6 +332,10 @@ export default async function FichaPage({
             ))}
           </ol>
         )}
+      </section>
+
+      <section className="section" aria-label="Excluir cliente">
+        <DeleteCustomer id={c.id} name={c.name} />
       </section>
     </>
   );

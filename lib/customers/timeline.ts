@@ -31,6 +31,8 @@ export type TimelineItem = {
   viaAgent: boolean;
   evidence?: string | null;
   upcoming?: boolean;
+  /** Registro que dá para corrigir ou excluir pela ficha (D64). */
+  ref?: { kind: "quote" | "service"; id: string };
 };
 
 type Src = { source: string; agentEventId: string | null };
@@ -106,6 +108,7 @@ export function buildTimeline(input: TimelineInput): TimelineItem[] {
       detail: `${q.description} · ${quoteStatusLabel[q.status] ?? q.status}`,
       viaAgent: q.source === "agente",
       evidence: ev(q),
+      ref: { kind: "quote", id: q.id },
     });
     if (q.respondedAt && (q.status === "aprovado" || q.status === "recusado")) {
       items.push({
@@ -127,6 +130,7 @@ export function buildTimeline(input: TimelineInput): TimelineItem[] {
       detail: s.total != null ? `${s.description} · ${formatMoney(s.total)}` : s.description,
       viaAgent: s.source === "agente",
       evidence: ev(s),
+      ref: { kind: "service", id: s.id },
     });
   }
   for (const a of input.appointments) {

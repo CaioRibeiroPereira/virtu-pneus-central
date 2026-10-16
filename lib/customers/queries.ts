@@ -168,6 +168,8 @@ export async function getCustomerDetail(db: Db, id: string, today: DateOnly) {
     customer,
     vehicles: vehicleRows,
     openQuotes: quoteRows.filter((q) => q.status === "enviado"),
+    quotes: quoteRows,
+    services: serviceRows,
     pendingTasks,
     overdueCount: pendingTasks.filter((t) => t.dueDate < today).length,
     nextAppointment:

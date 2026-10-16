@@ -14,6 +14,7 @@ export function ActionForm({
   hidden = {},
   submitLabel,
   open = false,
+  extra,
   children,
 }: {
   title: React.ReactNode;
@@ -21,6 +22,8 @@ export function ActionForm({
   hidden?: Record<string, string>;
   submitLabel: string;
   open?: boolean;
+  /** Mostrado depois do botão de salvar, dentro do formulário (ex.: "Excluir"). */
+  extra?: React.ReactNode;
   children: (errors: Record<string, string>, values: Record<string, string>) => React.ReactNode;
 }) {
   const { state, formAction, pending, formRef, onSubmit } = useActionForm<FormState>(action, {});
@@ -56,6 +59,7 @@ export function ActionForm({
         <button type="submit" className="btn btn-primary" disabled={pending}>
           {pending ? "Salvando..." : submitLabel}
         </button>
+        {extra}
       </form>
     </details>
   );

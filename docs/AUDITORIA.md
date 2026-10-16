@@ -824,3 +824,16 @@ npm run db:migrate                                           # 0007: motivo "dat
   - caixa de resposta escondida atrás do menu no celular;
   - item marcado na lista do celular sem conversa aberta.
 - axe nos dois temas (375/1280): 0 violações. Testes: 289 de unidade e integração passando.
+
+---
+
+## Etapa 19 — Corrigir/excluir registros e exclusão LGPD (16/10/2026)
+
+- `lib/customers/records.ts` (corrigir e excluir orçamento e serviço) e `lib/customers/erase.ts` (exclusão do cliente). Telas: "Corrigir ou excluir" no histórico da ficha e "Excluir cliente (LGPD)" no fim dela. Decisão D64.
+- Testes de integração (`tests/integration/registros.test.ts`, 5):
+  - o valor corrigido refaz a R1;
+  - excluir dois orçamentos com follow-up já feito não colide no índice único;
+  - a data corrigida refaz a R2;
+  - excluir o serviço devolve o estoque;
+  - a exclusão LGPD não deixa o telefone em evento, Revisão, Telegram ou auditoria, e não toca nos outros clientes.
+- Pela tela: valor "1.700" corrigido; serviço excluído com aviso; o botão de excluir o cliente só habilita com o nome digitado; a ficha excluída vira "não encontrada". Ao todo, 294 testes de unidade e integração.

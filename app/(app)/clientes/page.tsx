@@ -9,7 +9,7 @@ import { options, stageLabel } from "@/lib/labels";
 export const metadata: Metadata = { title: "Clientes | Central de clientes" };
 export const dynamic = "force-dynamic";
 
-type Search = { q?: string; etapa?: string; acao?: string };
+type Search = { q?: string; etapa?: string; acao?: string; excluido?: string };
 
 export default async function ClientesPage({ searchParams }: { searchParams: Promise<Search> }) {
   const params = await searchParams;
@@ -22,6 +22,11 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
 
   return (
     <>
+      {params.excluido === "1" && (
+        <p className="banner" role="status" style={{ marginBottom: 16 }}>
+          Cliente excluído, com todos os dados dele (LGPD).
+        </p>
+      )}
       <div className="page-header">
         <h1>Clientes</h1>
         <Link href="/clientes/novo" className="btn btn-primary">

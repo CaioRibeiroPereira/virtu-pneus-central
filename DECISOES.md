@@ -434,3 +434,20 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
 - A tela se atualiza sozinha a cada 15 s (só com a aba visível), para a mensagem nova do cliente aparecer sem recarregar.
 - O nome mostrado ignora "Contato (19)…", que é o rótulo do cadastro provisório, e usa o nome do Telegram.
 - A ficha do cliente continua com a conversa no formato de cartão.
+
+**D64 — Corrigir e excluir orçamento e serviço; excluir cliente (LGPD)** (16/10)
+- Pedido do Caio, para fechar duas limitações do RESUMO.
+- **Orçamento e serviço já registrados:** cada um tem "Corrigir ou excluir" no histórico da ficha.
+  - Corrigir orçamento refaz o follow-up pendente (R1) com o valor novo.
+  - Corrigir a data ou o tipo do serviço refaz o pós-venda (R2) e o retorno (R3) pendentes.
+  - Excluir tira as ações automáticas pendentes ligadas ao registro. As já feitas continuam no histórico, sem a regra, porque o índice único da D22 recusaria duas tarefas "sem origem" iguais.
+  - **Excluir um serviço devolve ao estoque** o que ele tinha baixado (movimentação "Devolução ao estoque: serviço excluído"). Corrigir o serviço não mexe no estoque (para isso há o ajuste).
+  - A etapa do cliente não volta ao excluir (só anda para frente — D60).
+  - Tudo vai para a auditoria (`update`/`delete`).
+- **Exclusão de cliente (LGPD):** área "Excluir cliente (LGPD)" no fim da ficha. Só funciona digitando o nome do cliente (§9 do plano). Numa transação, apaga:
+  - o cadastro e tudo ligado a ele;
+  - os eventos do Vito sobre ele (trazem telefone, nome e trechos da conversa), com as sugestões da Revisão, inclusive os que ainda não tinham cliente mas eram do telefone dele;
+  - as conversas do Telegram ligadas a ele ou ao telefone dele;
+  - as linhas da auditoria desses registros (o antes/depois tem dados pessoais).
+
+  Fica uma única linha de auditoria "delete" com o id e o motivo, sem dado pessoal (§6 do plano). O estoque não volta (a mercadoria saiu de verdade); as movimentações ficam, sem o vínculo com o cliente.

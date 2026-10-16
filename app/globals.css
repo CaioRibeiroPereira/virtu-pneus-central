@@ -1311,3 +1311,8 @@ details > summary::-webkit-details-marker {
     height: calc(100dvh - 300px);
   }
 }
+
+/* Exclusão do cliente (LGPD): área de perigo no fim da ficha. */
+.danger-zone > summary {
+  color: var(--danger);
+}

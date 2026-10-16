@@ -29,12 +29,17 @@ import {
   interactionForm,
   newVehicleForm,
   parseServiceItems,
+  quoteForm,
   quoteFormAt,
   serviceFormAt,
   taskFormAt,
   vehicleForm,
 } from "@/lib/customers/input";
 import { updateCustomerByGestor } from "@/lib/customers/update";
+import { deleteQuote, deleteService, updateQuote, updateService } from "@/lib/customers/records";
+import { eraseCustomer } from "@/lib/customers/erase";
+import { customers } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { addDays, formatTime, todayInStore } from "@/lib/dates";
 import { StockError } from "@/lib/oficina/inventory";
 
@@ -298,4 +303,79 @@ export async function cancelAppointmentAction(appointmentId: string) {
     );
     refresh(customerId);
   });
+}
+
+// ---------- Corrigir e excluir registros (D64) ----------
+
+export async function updateQuoteAction(_prev: FormState, form: FormData): Promise<FormState> {
+  await requireSession();
+  const quoteId = String(form.get("quoteId") ?? "");
+  const keys = ["description", "total", "tireSize", "quantity", "validUntil"];
+  const values = formToObject(form, keys);
+  const parsed = quoteForm.safeParse(values);
+  if (!parsed.success) return { values, errors: fieldErrors(parsed.error) };
+  try {
+    const customerId = await withTransactionalDb((db) => updateQuote(db, quoteId, parsed.data));
+    refresh(customerId);
+  } catch (err) {
+    if (err instanceof CommandError) return { values, errors: { _form: err.message } };
+    throw err;
+  }
+  return { ok: true, message: "Orçamento corrigido." };
+}
+
+export async function deleteQuoteAction(quoteId: string) {
+  return tap(async () => {
+    const customerId = await withTransactionalDb((db) => deleteQuote(db, quoteId));
+    refresh(customerId);
+    return "Orçamento excluído.";
+  });
+}
+
+export async function updateServiceAction(_prev: FormState, form: FormData): Promise<FormState> {
+  await requireSession();
+  const serviceId = String(form.get("serviceId") ?? "");
+  const keys = ["type", "description", "date", "total", "km", "employeeId"];
+  const values = formToObject(form, keys);
+  const parsed = serviceFormAt(todayInStore()).safeParse(values);
+  if (!parsed.success) return { values, errors: fieldErrors(parsed.error) };
+  try {
+    const customerId = await withTransactionalDb((db) => updateService(db, serviceId, parsed.data));
+    refresh(customerId);
+  } catch (err) {
+    if (err instanceof CommandError) return { values, errors: { _form: err.message } };
+    throw err;
+  }
+  return { ok: true, message: "Serviço corrigido." };
+}
+
+export async function deleteServiceAction(serviceId: string) {
+  return tap(async () => {
+    const r = await withTransactionalDb((db) => deleteService(db, serviceId));
+    refresh(r.customerId);
+    revalidatePath("/estoque");
+    return r.returnedItems
+      ? "Serviço excluído. Os itens que ele tinha baixado voltaram ao estoque."
+      : "Serviço excluído.";
+  });
+}
+
+/** Exclusão a pedido do titular (LGPD): só com o nome digitado igual ao do cadastro. */
+export async function deleteCustomerAction(_prev: FormState, form: FormData): Promise<FormState> {
+  await requireSession();
+  const id = String(form.get("id") ?? "");
+  const typed = String(form.get("confirmName") ?? "").trim();
+  const [customer] = await withTransactionalDb((db) =>
+    db.select({ name: customers.name }).from(customers).where(eq(customers.id, id)),
+  );
+  if (!customer) return { message: "Cliente não encontrado." };
+  if (typed.toLocaleLowerCase("pt-BR") !== customer.name.trim().toLocaleLowerCase("pt-BR")) {
+    return {
+      values: { confirmName: typed },
+      errors: { confirmName: "Digite o nome exatamente como está no cadastro" },
+    };
+  }
+  await withTransactionalDb((db) => eraseCustomer(db, id));
+  revalidatePath("/", "layout");
+  redirect("/clientes?excluido=1");
 }

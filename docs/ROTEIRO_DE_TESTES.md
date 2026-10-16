@@ -111,6 +111,10 @@ esperado. Marque `[x]` no que passou e anote o que não passou na coluna **Obs.*
 | 13 | Orçamento em aberto → **Recusado** → motivo "Achou caro" → **Confirmar recusa** | No Histórico (filtro Orçamentos): "Orçamento recusado · Motivo: Achou caro" | [ ] | |
 | 14 | Filtros do **Histórico** | Cada filtro mostra só aquele tipo; "Tudo" volta | [ ] | |
 | 15 | Botões **WhatsApp** e **Ligar** do cabeçalho | Abrem o WhatsApp e o discador com o número do cliente | [ ] | |
+| 16 | No Histórico, num serviço: **Corrigir ou excluir** → valor `1.700` → Salvar | Serviço com R$ 1.700,00 | [ ] | |
+| 17 | No mesmo serviço: **Excluir este serviço** | Some do histórico; se tinha itens do estoque, eles voltam ao estoque | [ ] | |
+| 18 | Num orçamento: corrija o valor | O "Retomar orçamento" pendente passa a citar o valor novo | [ ] | |
+| 19 | No fim da ficha: **Excluir cliente (LGPD)** | O botão só habilita com o nome digitado; depois, volta para Clientes com o aviso e a ficha não existe mais | [ ] | |
 
 ---
 
