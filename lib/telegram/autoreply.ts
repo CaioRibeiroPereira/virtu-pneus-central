@@ -58,7 +58,7 @@ export type ReplyPlan = {
 export const HANDOFF_MS = 12 * 60 * 60 * 1000;
 
 export const HANDOFF_TEXT =
-  "Recebemos sua mensagem! O dono da oficina vai te responder por aqui em breve.";
+  "Recebemos sua mensagem, muito obrigado! Já avisei o dono da oficina, e ele vai te responder por aqui o quanto antes.";
 
 const GREETING =
   /^(oi+|ola|opa|e ai|eai|bom dia|boa tarde|boa noite|tudo bem|tudo bom|blz|beleza|salve|hey|alo)([\s,!.?]+(oi+|ola|bom dia|boa tarde|boa noite|tudo bem|tudo bom|vito))*[\s,!.?]*$/;
@@ -88,18 +88,27 @@ export function classify(text: string): Intent {
   return "outro";
 }
 
-const CAPABILITIES = "informar o horário, o endereço e o seu agendamento";
+const CAPABILITIES =
+  "com o nosso horário de funcionamento, o endereço da oficina ou o seu agendamento";
 
 export function disclosureText(shop: ShopInfo): string {
   return (
-    `Olá! Sou o Vito, assistente automático da ${shop.name}. ` +
-    `Eu posso ${CAPABILITIES}; o resto o dono da oficina responde pessoalmente, por aqui. ` +
-    `Suas mensagens ficam registradas para o atendimento.`
+    `Olá! Boas-vindas à ${shop.name}! Eu sou o Vito, o assistente automático da oficina. ` +
+    `Posso te ajudar ${CAPABILITIES}; para os demais assuntos, o dono da oficina vai te atender ` +
+    `pessoalmente, por aqui mesmo. Suas mensagens ficam registradas para o atendimento.`
   );
 }
 
 export const ASK_CONTACT_TEXT =
-  "Para eu encontrar o seu cadastro, toque em “Compartilhar meu telefone” aqui embaixo.";
+  "Para eu localizar o seu cadastro, por favor, toque em “Compartilhar meu telefone” aqui embaixo.";
+
+/** Nome para cumprimentar: "Contato (19) …" é o rótulo do cadastro provisório, não um nome. */
+export function greetingName(customerName: string | null | undefined, firstName: string | null) {
+  const fromCustomer = customerName?.trim().split(/\s+/)[0];
+  const name =
+    fromCustomer && fromCustomer !== "Contato" ? fromCustomer : (firstName?.trim() ?? "");
+  return name;
+}
 
 export function planReply(input: ReplyInput): ReplyPlan {
   const intent = classify(input.text);
@@ -122,19 +131,24 @@ export function planReply(input: ReplyInput): ReplyPlan {
   const markDisclosed = !input.disclosed;
   if (markDisclosed) messages.push(disclosureText(input.shop));
 
-  const name = input.customerName?.split(" ")[0] ?? input.firstName ?? "";
+  const name = greetingName(input.customerName, input.firstName);
 
   switch (intent) {
     case "saudacao":
       if (input.disclosed) {
-        messages.push(`Olá${name ? `, ${name}` : ""}! Posso ${CAPABILITIES}. Como posso ajudar?`);
+        messages.push(
+          `Olá${name ? `, ${name}` : ""}, tudo bem? Que bom falar com você! ` +
+            `Posso te ajudar ${CAPABILITIES}. Em que posso ajudar?`,
+        );
       }
       break;
     case "horario":
-      messages.push(`Nosso horário: ${input.shop.hours}.`);
+      messages.push(
+        `Nosso horário de funcionamento: ${input.shop.hours}. Será um prazer receber você!`,
+      );
       break;
     case "endereco":
-      messages.push(`Estamos em: ${input.shop.address}.`);
+      messages.push(`Nosso endereço: ${input.shop.address}. Será um prazer receber você!`);
       break;
     case "agendamento":
       if (!input.hasPhone) {
@@ -143,13 +157,13 @@ export function planReply(input: ReplyInput): ReplyPlan {
       } else if (input.nextAppointment) {
         const a = input.nextAppointment;
         messages.push(
-          `Seu próximo agendamento: ${a.service}, ${a.when} — ` +
+          `Encontrei o seu próximo agendamento: ${a.service}, ${a.when} — ` +
             `${a.confirmed ? "confirmado" : "aguardando confirmação da oficina"}. ` +
-            `Para mudar, o dono te responde por aqui.`,
+            `Se precisar mudar algo, o dono da oficina te responde por aqui.`,
         );
       } else {
         messages.push(
-          "Não encontrei agendamento futuro no seu cadastro. O dono da oficina vai te responder por aqui.",
+          "Não encontrei nenhum agendamento futuro no seu cadastro. Já avisei o dono da oficina, e ele vai te responder por aqui.",
         );
         notifyOwner = true;
         markHandoff = true;

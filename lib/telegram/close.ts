@@ -7,7 +7,7 @@ import { telegramChats, telegramMessages } from "@/db/schema";
 import type { SendMessage } from "./api";
 
 export const CLOSING_TEXT =
-  "Atendimento encerrado. Obrigado pelo contato! Se precisar de algo, é só mandar uma mensagem por aqui.";
+  "Foi um prazer atender você! Vamos encerrar este atendimento por aqui. Muito obrigado pelo contato e, quando precisar, é só mandar uma mensagem.";
 
 export type CloseResult = { ok: true } | { ok: false; reason: "not_found" };
 

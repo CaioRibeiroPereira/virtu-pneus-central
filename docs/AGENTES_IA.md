@@ -94,7 +94,7 @@ Telegram**. Ali o Vito **responde sozinho só o que é seguro**, sem IA gerando 
 | horário de funcionamento | texto fixo da oficina (`SHOP_HOURS`) |
 | endereço | texto fixo da oficina (`SHOP_ADDRESS`) |
 | "como está meu agendamento?" | o próximo agendamento **que está no sistema** (serviço, dia, hora, confirmado ou não) |
-| qualquer outra coisa (preço, estoque, "posso ir hoje?", "me dá desconto") | "Recebemos sua mensagem! O dono vai te responder por aqui em breve" + aviso ao dono — e a conversa **passa para o dono** |
+| qualquer outra coisa (preço, estoque, "posso ir hoje?", "me dá desconto") | "Recebemos sua mensagem, muito obrigado! Já avisei o dono da oficina, e ele vai te responder por aqui o quanto antes" + aviso ao dono — e a conversa **passa para o dono** |
 
 Depois da passagem (ou quando o dono responde), **o Vito fica em silêncio** naquela conversa —
 uma voz só, a do dono — e só avisa o dono de cada mensagem nova. Se o dono ficar 12 h sem

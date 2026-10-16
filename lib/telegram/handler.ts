@@ -7,7 +7,13 @@ import { appointments, customers, telegramChats, telegramMessages } from "@/db/s
 import { serviceTypeLabel } from "@/lib/labels";
 import { normalizePhone } from "@/lib/phone";
 import type { SendMessage, TelegramUpdate } from "./api";
-import { HANDOFF_MS, planReply, type NextAppointment, type ShopInfo } from "./autoreply";
+import {
+  greetingName,
+  HANDOFF_MS,
+  planReply,
+  type NextAppointment,
+  type ShopInfo,
+} from "./autoreply";
 
 export type TelegramDeps = {
   db: Db;
@@ -136,7 +142,7 @@ export async function handleTelegramUpdate(
       await sendAll(
         deps,
         chatId,
-        ["Use o botão “Compartilhar meu telefone” para enviar o seu próprio número."],
+        ["Por favor, use o botão “Compartilhar meu telefone” para enviar o seu próprio número."],
         {
           askContact: true,
         },
@@ -156,9 +162,11 @@ export async function handleTelegramUpdate(
       deps,
       chatId,
       [
-        customer
-          ? `Obrigado, ${customer.name.split(" ")[0]}! Encontrei o seu cadastro.`
-          : "Obrigado! Anotei o seu telefone. O dono da oficina vai te atender por aqui.",
+        customer && greetingName(customer.name, null)
+          ? `Obrigado, ${greetingName(customer.name, null)}! Encontrei o seu cadastro. Em que posso ajudar?`
+          : customer
+            ? "Obrigado! Encontrei o seu cadastro. Em que posso ajudar?"
+            : "Obrigado! Anotei o seu telefone. Em que posso ajudar?",
       ],
       { removeKeyboard: true },
     );

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { classify, HANDOFF_TEXT, planReply, type ReplyInput } from "@/lib/telegram/autoreply";
+import {
+  classify,
+  greetingName,
+  HANDOFF_TEXT,
+  planReply,
+  type ReplyInput,
+} from "@/lib/telegram/autoreply";
 
 const shop = {
   name: "Virtù Pneus",
@@ -49,8 +55,12 @@ describe("respostas: só texto fixo ou dado do sistema", () => {
   });
 
   it("horário e endereço vêm da configuração da oficina", () => {
-    expect(allText(plan("que horas abre?"))).toBe(`Nosso horário: ${shop.hours}.`);
-    expect(allText(plan("qual o endereço?"))).toBe(`Estamos em: ${shop.address}.`);
+    expect(allText(plan("que horas abre?"))).toBe(
+      `Nosso horário de funcionamento: ${shop.hours}. Será um prazer receber você!`,
+    );
+    expect(allText(plan("qual o endereço?"))).toBe(
+      `Nosso endereço: ${shop.address}. Será um prazer receber você!`,
+    );
   });
 
   it("agendamento: só o que está no sistema; sem cadastro, pede o telefone", () => {
@@ -59,7 +69,7 @@ describe("respostas: só texto fixo ou dado do sistema", () => {
       /Rodízio, sábado, 17\/10 às 09:00 — confirmado/,
     );
     const none = plan("meu agendamento?", { nextAppointment: null });
-    expect(allText(none)).toMatch(/Não encontrei agendamento/);
+    expect(allText(none)).toMatch(/Não encontrei nenhum agendamento/);
     expect(none.notifyOwner).toBe(true);
     expect(plan("meu agendamento?", { hasPhone: false }).askContact).toBe(true);
   });
@@ -127,10 +137,19 @@ describe("respostas: só texto fixo ou dado do sistema", () => {
       ]) {
         for (const m of p.messages) {
           expect(m).toMatch(
-            /^(Olá|Nosso horário: |Estamos em: |Seu próximo agendamento: |Não encontrei agendamento|Recebemos sua mensagem|Para eu encontrar o seu cadastro)/,
+            /^(Olá|Nosso horário de funcionamento: |Nosso endereço: |Encontrei o seu próximo agendamento: |Não encontrei nenhum agendamento|Recebemos sua mensagem|Para eu localizar o seu cadastro)/,
           );
         }
       }
     }
+  });
+});
+
+describe("cumprimento pelo nome", () => {
+  it("usa o primeiro nome do cadastro; o rótulo provisório 'Contato …' não é nome", () => {
+    expect(greetingName("Caio Ribeiro", "Caio")).toBe("Caio");
+    expect(greetingName("Contato (35) 99999-0000", "Caio")).toBe("Caio");
+    expect(greetingName("Contato (35) 99999-0000", null)).toBe("");
+    expect(greetingName(null, "Ana")).toBe("Ana");
   });
 });

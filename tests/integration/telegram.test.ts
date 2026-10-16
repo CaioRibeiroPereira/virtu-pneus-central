@@ -94,7 +94,9 @@ describe("bot da oficina no Telegram", () => {
     expect((await handleTelegramUpdate(u, deps())).status).toBe("ok");
     expect((await handleTelegramUpdate(u, deps())).status).toBe("duplicate");
     expect(sent.length).toBe(before + 1);
-    expect(sent.at(-1)?.text).toBe("Estamos em: Rua Exemplo, 100.");
+    expect(sent.at(-1)?.text).toBe(
+      "Nosso endereço: Rua Exemplo, 100. Será um prazer receber você!",
+    );
   });
 
   it("contato encaminhado de OUTRA pessoa não liga a conversa a cadastro nenhum", async () => {
@@ -110,7 +112,9 @@ describe("bot da oficina no Telegram", () => {
   it("o próprio telefone liga ao cadastro e avisa o dono", async () => {
     const out = await handleTelegramUpdate(contactUpdate("5519900000040", USER), deps());
     expect(out).toMatchObject({ status: "ok", customerId });
-    expect(sent.at(-1)).toMatchObject({ text: "Obrigado, Tiago! Encontrei o seu cadastro." });
+    expect(sent.at(-1)).toMatchObject({
+      text: "Obrigado, Tiago! Encontrei o seu cadastro. Em que posso ajudar?",
+    });
     expect(sent.at(-1)?.opts?.removeKeyboard).toBe(true);
     expect(owner.at(-1)).toMatch(/Tiago Mendes .*compartilhou o telefone/);
   });
@@ -118,7 +122,7 @@ describe("bot da oficina no Telegram", () => {
   it("agendamento: responde com o que está no banco", async () => {
     await handleTelegramUpdate(textUpdate("como está meu agendamento?"), deps());
     expect(sent.at(-1)?.text).toBe(
-      "Seu próximo agendamento: Alinhamento, sábado, 17/10 às 09:00 — confirmado. Para mudar, o dono te responde por aqui.",
+      "Encontrei o seu próximo agendamento: Alinhamento, sábado, 17/10 às 09:00 — confirmado. Se precisar mudar algo, o dono da oficina te responde por aqui.",
     );
   });
 
@@ -130,7 +134,7 @@ describe("bot da oficina no Telegram", () => {
       deps(new Date(NOW.getTime() + 60_000)),
     );
     expect(sent.length).toBe(before + 1);
-    expect(sent.at(-1)?.text).toMatch(/^Recebemos sua mensagem!/);
+    expect(sent.at(-1)?.text).toMatch(/^Recebemos sua mensagem/);
     expect(owner.at(-1)).toBe(
       `📩 Tiago Mendes (Telegram): “e o balanceamento?”\nResponder: https://virtu.example/clientes/${customerId}`,
     );
@@ -150,7 +154,9 @@ describe("conversa com o dono", () => {
   it("depois de 12 h sem resposta do dono, o Vito volta a responder o que é seguro", async () => {
     const later = new Date(NOW.getTime() + 13 * 60 * 60 * 1000);
     await handleTelegramUpdate(textUpdate("que horas vocês abrem?"), deps(later));
-    expect(sent.at(-1)?.text).toBe("Nosso horário: seg a sex, 8h às 18h.");
+    expect(sent.at(-1)?.text).toBe(
+      "Nosso horário de funcionamento: seg a sex, 8h às 18h. Será um prazer receber você!",
+    );
   });
 });
 
@@ -175,7 +181,9 @@ describe("encerrar a conversa (D62)", () => {
       textUpdate("qual o endereço?"),
       deps(new Date(t0.getTime() + 2 * 60_000)),
     );
-    expect(sent.at(-1)?.text).toBe("Estamos em: Rua Exemplo, 100.");
+    expect(sent.at(-1)?.text).toBe(
+      "Nosso endereço: Rua Exemplo, 100. Será um prazer receber você!",
+    );
     expect(await closeConversation(db, "123", deps().send)).toEqual({
       ok: false,
       reason: "not_found",
