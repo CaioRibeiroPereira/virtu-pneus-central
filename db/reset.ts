@@ -15,7 +15,8 @@ export async function resetDemoData(db: Db, today: DateOnly = todayInStore()) {
 
   await db.transaction(async (tx) => {
     await tx.execute(sql`truncate table audit_log, review_items, tasks, interactions, appointments,
-      services, quotes, vehicles, agent_events, customers cascade`);
+      stock_movements, services, quotes, vehicles, agent_events, customers, products,
+      service_catalog, employees cascade`);
     // Conversas do Telegram são do canal real, não da demo: ficam. Só perdem o atalho para os
     // clientes apagados; na próxima mensagem voltam a ser ligadas pelo telefone (D57).
     await tx.update(s.telegramChats).set({ customerId: null });
@@ -26,6 +27,10 @@ export async function resetDemoData(db: Db, today: DateOnly = todayInStore()) {
         .insert(s.agentEvents)
         .values(data.agentEvents.map((e) => ({ ...e, customerId: null })));
     }
+    if (data.employees.length) await tx.insert(s.employees).values(data.employees);
+    if (data.serviceCatalog.length) await tx.insert(s.serviceCatalog).values(data.serviceCatalog);
+    if (data.products.length) await tx.insert(s.products).values(data.products);
+    if (data.stockMovements.length) await tx.insert(s.stockMovements).values(data.stockMovements);
     if (data.customers.length) await tx.insert(s.customers).values(data.customers);
     if (data.vehicles.length) await tx.insert(s.vehicles).values(data.vehicles);
     if (data.quotes.length) await tx.insert(s.quotes).values(data.quotes);
@@ -58,5 +63,7 @@ export async function resetDemoData(db: Db, today: DateOnly = todayInStore()) {
     autoTasksCreated: autoTasks.created,
     agentEvents: data.agentEvents.length,
     reviewItems: data.reviewItems.length,
+    employees: data.employees.length,
+    products: data.products.length,
   };
 }

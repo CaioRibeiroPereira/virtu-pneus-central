@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarCheck, Inbox, Menu, MessagesSquare, Users } from "lucide-react";
+import {
+  CalendarCheck,
+  Inbox,
+  Menu,
+  MessagesSquare,
+  Package,
+  UsersRound,
+  Users,
+  Wrench,
+} from "lucide-react";
 
 type Item = {
   href: string;
@@ -29,9 +38,11 @@ function CountBadge({ count, label }: { count?: number; label: string }) {
 export function SidebarNav({
   reviewCount,
   conversationCount = 0,
+  lowStockCount = 0,
 }: {
   reviewCount: number;
   conversationCount?: number;
+  lowStockCount?: number;
 }) {
   const pathname = usePathname();
   const items: Item[] = [
@@ -45,6 +56,15 @@ export function SidebarNav({
       count: conversationCount,
       countLabel: "conversas esperando resposta",
     },
+    {
+      href: "/estoque",
+      label: "Estoque",
+      icon: Package,
+      count: lowStockCount,
+      countLabel: "produtos com estoque baixo",
+    },
+    { href: "/servicos", label: "Serviços", icon: Wrench },
+    { href: "/equipe", label: "Equipe", icon: UsersRound },
     { href: "/mais", label: "Mais", icon: Menu },
   ];
   return (

@@ -28,6 +28,10 @@ export type SeedData = {
   tasks: Insert<typeof s.tasks>[];
   agentEvents: Insert<typeof s.agentEvents>[];
   reviewItems: Insert<typeof s.reviewItems>[];
+  employees: Insert<typeof s.employees>[];
+  serviceCatalog: Insert<typeof s.serviceCatalog>[];
+  products: Insert<typeof s.products>[];
+  stockMovements: Insert<typeof s.stockMovements>[];
 };
 
 export function buildSeed(today: DateOnly): SeedData {
@@ -44,7 +48,54 @@ export function buildSeed(today: DateOnly): SeedData {
     tasks: [],
     agentEvents: [],
     reviewItems: [],
+    employees: [],
+    serviceCatalog: [],
+    products: [],
+    stockMovements: [],
   };
+
+  // ---------- Oficina: equipe, tabela de serviços e estoque (D58) ----------
+
+  const employee = (name: string, role: string, phoneDisplay: string) => {
+    const id = randomUUID();
+    data.employees.push({ id, name, role, phoneDisplay });
+    return id;
+  };
+  const ze = employee("Zé Carlos", "Mecânico", "(19) 90000-0201");
+  const rafael = employee("Rafael Souza", "Alinhador", "(19) 90000-0202");
+  const bruna = employee("Bruna Lima", "Atendente", "(19) 90000-0203");
+
+  for (const [name, type, price, durationMinutes] of [
+    ["Alinhamento", "alinhamento", 90, 40],
+    ["Balanceamento das 4 rodas", "balanceamento", 80, 30],
+    ["Alinhamento + balanceamento", "alinhamento", 150, 60],
+    ["Rodízio de pneus", "rodizio", 60, 30],
+    ["Montagem de pneu (por unidade)", "troca_pneus", 25, 15],
+    ["Reparo de furo", "reparo", 40, 20],
+  ] as const) {
+    data.serviceCatalog.push({ id: randomUUID(), name, type, price, durationMinutes });
+  }
+
+  // 3 produtos abaixo do mínimo, para o alerta de estoque baixo aparecer na demonstração.
+  for (const [kind, name, tireSize, price, quantity, minQuantity] of [
+    ["pneu", "Pirelli Cinturato P1", "205/55 R16", 460, 12, 4],
+    ["pneu", "Michelin Primacy 4", "215/50 R17", 820, 3, 4],
+    ["pneu", "Goodyear EfficientGrip", "185/60 R15", 380, 8, 4],
+    ["pneu", "Bridgestone Turanza", "195/55 R16", 430, 2, 4],
+    ["pneu", "Continental PremiumContact 6", "225/45 R18", 990, 4, 2],
+    ["item", "Válvula de pneu", null, 8, 40, 20],
+    ["item", "Kit de pesos de balanceamento", null, 12, 6, 10],
+  ] as const) {
+    const id = randomUUID();
+    data.products.push({ id, kind, name, tireSize, price, quantity, minQuantity });
+    data.stockMovements.push({
+      productId: id,
+      kind: "entrada",
+      quantity,
+      note: "Estoque inicial",
+      createdAt: at(-30, "08:00"),
+    });
+  }
 
   let phoneSeq = 0;
   function customer(
@@ -252,6 +303,7 @@ export function buildSeed(today: DateOnly): SeedData {
       performedAt: at(offset, "16:00"),
       total,
       km: 42000 + Math.abs(offset) * 10,
+      employeeId: type === "alinhamento" ? rafael : ze,
     });
     if (postSaleDone) {
       // Pós-venda antigo já feito: a regra R2 não deve recriar (índice único da tarefa automática).
@@ -423,6 +475,7 @@ export function buildSeed(today: DateOnly): SeedData {
     title: "Retornar com opções de aro 14",
     reason: "Visitou a loja e pediu opções mais baratas",
     dueDate: day(5),
+    assigneeId: bruna,
   });
 
   const lucas = customer("Lucas Ribeiro", { stage: "em_negociacao", origin: "instagram" });
@@ -459,6 +512,7 @@ export function buildSeed(today: DateOnly): SeedData {
     title: "Confirmar chegada dos pneus com o fornecedor",
     reason: "Marcos quer saber o prazo de entrega antes de aprovar",
     dueDate: day(0),
+    assigneeId: bruna,
   });
 
   // ---------- Cliente provisório criado pelo agente ----------

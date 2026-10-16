@@ -56,8 +56,69 @@ function QuickForm({
   );
 }
 
-export function QuickActions({ customerId, today }: { customerId: string; today: string }) {
+export type OficinaLists = {
+  employees: { id: string; name: string }[];
+  catalog: { id: string; name: string; type: string; price: number }[];
+  /** label: "Pirelli P1 205/55 R16 — 12 em estoque". */
+  products: { id: string; label: string }[];
+};
+
+const brl = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+
+/** "Usar da tabela de serviços": preenche os campos do mesmo formulário (sem enviar nada). */
+function CatalogPicker({
+  idPrefix,
+  catalog,
+  fill,
+}: {
+  idPrefix: string;
+  catalog: OficinaLists["catalog"];
+  fill: Record<string, (item: OficinaLists["catalog"][number]) => string>;
+}) {
+  if (!catalog.length) return null;
+  return (
+    <SelectField
+      idPrefix={idPrefix}
+      name="catalogPick"
+      label="Usar da tabela de serviços"
+      hint="Preenche descrição e valor; dá para ajustar depois"
+      options={[
+        ["", "—"],
+        ...catalog.map((c): [string, string] => [c.id, `${c.name} — R$ ${brl(c.price)}`]),
+      ]}
+      defaultValue=""
+      onChange={(e) => {
+        const item = catalog.find((c) => c.id === e.currentTarget.value);
+        const form = e.currentTarget.form;
+        if (!item || !form) return;
+        for (const [field, value] of Object.entries(fill)) {
+          const el = form.elements.namedItem(field);
+          if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement)
+            el.value = value(item);
+        }
+      }}
+    />
+  );
+}
+
+export function QuickActions({
+  customerId,
+  today,
+  lists = { employees: [], catalog: [], products: [] },
+}: {
+  customerId: string;
+  today: string;
+  lists?: OficinaLists;
+}) {
   const p = (name: string) => `${name}-`; // prefixo de id, para os campos não colidirem entre formulários
+  const employeeOptions: [string, string][] = [
+    ["", "Ninguém em especial"],
+    ...lists.employees.map((e): [string, string] => [e.id, e.name]),
+  ];
+  const productOptions: [string, string][] = [
+    ["", "—"],
+    ...lists.products.map((x): [string, string] => [x.id, x.label]),
+  ];
   return (
     <div className="stack">
       <QuickForm
@@ -103,6 +164,16 @@ export function QuickActions({ customerId, today }: { customerId: string; today:
               defaultValue={v.type ?? "retorno_comercial"}
               error={e.type}
             />
+            {lists.employees.length > 0 && (
+              <SelectField
+                idPrefix={p("t")}
+                name="assigneeId"
+                label="Responsável"
+                options={employeeOptions}
+                defaultValue={v.assigneeId ?? ""}
+                error={e.assigneeId}
+              />
+            )}
           </div>
         )}
       </QuickForm>
@@ -115,6 +186,11 @@ export function QuickActions({ customerId, today }: { customerId: string; today:
       >
         {(e, v) => (
           <div className="form-grid">
+            <CatalogPicker
+              idPrefix={p("q")}
+              catalog={lists.catalog}
+              fill={{ description: (c) => c.name, total: (c) => brl(c.price) }}
+            />
             <TextField
               idPrefix={p("q")}
               name="description"
@@ -170,6 +246,11 @@ export function QuickActions({ customerId, today }: { customerId: string; today:
       >
         {(e, v) => (
           <div className="form-grid">
+            <CatalogPicker
+              idPrefix={p("s")}
+              catalog={lists.catalog}
+              fill={{ type: (c) => c.type, description: (c) => c.name, total: (c) => brl(c.price) }}
+            />
             <SelectField
               idPrefix={p("s")}
               name="type"
@@ -212,6 +293,49 @@ export function QuickActions({ customerId, today }: { customerId: string; today:
               defaultValue={v.km}
               error={e.km}
             />
+            {lists.employees.length > 0 && (
+              <SelectField
+                idPrefix={p("s")}
+                name="employeeId"
+                label="Quem fez"
+                options={employeeOptions}
+                defaultValue={v.employeeId ?? ""}
+                error={e.employeeId}
+              />
+            )}
+            {lists.products.length > 0 && (
+              <fieldset
+                className="field"
+                style={{ gridColumn: "1 / -1", border: 0, padding: 0, margin: 0 }}
+              >
+                <legend className="label" style={{ marginBottom: 6 }}>
+                  Itens do estoque usados (baixa automática)
+                </legend>
+                {[1, 2, 3].map((n) => (
+                  <div key={n} className="form-grid" style={{ gridTemplateColumns: "1fr 110px" }}>
+                    <SelectField
+                      idPrefix={p("s")}
+                      name={`item_product_${n}`}
+                      label={`Produto ${n}`}
+                      options={productOptions}
+                      defaultValue=""
+                    />
+                    <TextField
+                      idPrefix={p("s")}
+                      name={`item_qty_${n}`}
+                      label="Qtd."
+                      inputMode="numeric"
+                      defaultValue=""
+                    />
+                  </div>
+                ))}
+                {e.items && (
+                  <p className="field-error" role="alert">
+                    {e.items}
+                  </p>
+                )}
+              </fieldset>
+            )}
           </div>
         )}
       </QuickForm>

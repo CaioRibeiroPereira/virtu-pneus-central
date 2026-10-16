@@ -31,6 +31,10 @@ de IA). Reconstrução do protótipo do desafio do Grupo Virtù, com o diagnóst
 | **Hoje** | Ações vencidas e do dia (follow-up de orçamento, pós-venda, retorno, confirmar agendamento), agenda e orçamentos aguardando — com WhatsApp/ligar em um toque |
 | **Clientes** | Busca tolerante (sem acento, telefone por dígitos, placa sem traço), ficha com veículos, orçamentos, linha do tempo e o que veio do Vito |
 | **Revisão** | O que a IA não pôde aplicar sozinha: confiança baixa, cliente desconhecido, dinheiro, conflito com edição do gestor — aprovar, corrigir ou rejeitar |
+| **Conversas** | Telegram da oficina: o Vito responde sozinho só horário, endereço e o agendamento do sistema; o resto vai para o dono, que responde por aqui (ou pela ficha) |
+| **Estoque** | Pneus e itens, entrada de mercadoria, ajuste por contagem, histórico e alerta de estoque baixo; baixa automática ao registrar um serviço com itens na ficha |
+| **Serviços** | Tabela de serviços e preços da oficina — preenche orçamentos e serviços na ficha |
+| **Equipe** | Funcionários e o que está com cada um (responsável nas ações e nos serviços) |
 | **Simulador** (teste, fora do menu) | 6 conversas fictícias que chamam o endpoint real dos agentes, sem precisar de IA — em `/simulador` ou **Mais → Ferramentas de teste** |
 
 Regras automáticas (`lib/rules/`): orçamento sem resposta em 3 dias → follow-up (R1); serviço feito →

@@ -33,16 +33,19 @@ export function TelegramThread({
 
   return (
     <div className="card">
-      <ol className="chat" aria-label="Últimas mensagens">
-        {messages.map((m) => (
-          <li key={m.id} className={`chat-msg chat-${m.author}`}>
-            <span className="chat-meta">
-              {AUTHOR[m.author] ?? m.author} · {m.when}
-            </span>
-            <p>{m.text}</p>
-          </li>
-        ))}
-      </ol>
+      {/* A área rola quando a conversa é longa: focável pelo teclado (WCAG 2.1.1), com nome. */}
+      <div className="chat-scroll" role="region" aria-label="Últimas mensagens" tabIndex={0}>
+        <ol className="chat">
+          {messages.map((m) => (
+            <li key={m.id} className={`chat-msg chat-${m.author}`}>
+              <span className="chat-meta">
+                {AUTHOR[m.author] ?? m.author} · {m.when}
+              </span>
+              <p>{m.text}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
       <form ref={form} action={action} className="field" style={{ margin: "14px 0 0" }}>
         <input type="hidden" name="chatId" value={chatId} />
         <label htmlFor={`tg-reply-${chatId}`}>Responder pelo Telegram</label>

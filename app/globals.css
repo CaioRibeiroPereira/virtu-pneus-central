@@ -812,6 +812,9 @@ details > summary::-webkit-details-marker {
   font-weight: 800;
 }
 .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-left: auto;
   padding: 3px 10px;
   border-radius: 999px;
@@ -925,6 +928,11 @@ details > summary::-webkit-details-marker {
 }
 
 /* Conversa do Telegram na ficha (D57) */
+.chat-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+  border-radius: 12px;
+}
 .chat {
   display: flex;
   flex-direction: column;
@@ -932,8 +940,6 @@ details > summary::-webkit-details-marker {
   margin: 0;
   padding: 0;
   list-style: none;
-  max-height: 420px;
-  overflow-y: auto;
 }
 .chat-msg {
   max-width: 85%;
@@ -955,4 +961,9 @@ details > summary::-webkit-details-marker {
   font-size: 0.8125rem;
   font-weight: 700;
   color: var(--text-muted);
+}
+
+/* Lista que também é seção: mantém o espaço de seção (o .stack zera a margem). */
+.stack.section {
+  margin-top: 28px;
 }

@@ -7,6 +7,7 @@ import {
   Clock,
   MessageCircle,
   MessagesSquare,
+  Package,
   Plus,
   Sparkles,
   Wallet,
@@ -18,6 +19,7 @@ import { whatsappMessage } from "@/lib/messages";
 import { whatsappLink } from "@/lib/phone";
 import { loadTodayExtras } from "@/lib/rules/today-extras";
 import { conversationsNeedingReply } from "@/lib/telegram/thread";
+import { lowStock } from "@/lib/oficina/inventory";
 import { loadTodayPanel, type TodayItem, type TodayTask } from "@/lib/rules/today";
 import { TaskActions } from "@/components/task-actions";
 
@@ -78,6 +80,7 @@ function TaskCard({ task }: { task: Task }) {
       </p>
       <div className="tags">
         <span className="tag">{taskTypeLabel[task.type] ?? "Contato"}</span>
+        {task.assigneeName && <span className="tag">Responsável: {task.assigneeName}</span>}
         {task.viaAgent && (
           <span className="tag tag-agent">
             <Sparkles aria-hidden="true" size={13} /> via Vito
@@ -153,9 +156,14 @@ export default async function HojePage({
   const { filtro } = await searchParams;
   const today = todayInStore();
   // Sincroniza as regras automáticas e monta o painel numa transação (§7.2).
-  const [panel, extras, waitingChats] = await withTransactionalDb(async (db) => {
+  const [panel, extras, waitingChats, low] = await withTransactionalDb(async (db) => {
     const p = await loadTodayPanel(db, today);
-    return [p, await loadTodayExtras(db, today), await conversationsNeedingReply(db)] as const;
+    return [
+      p,
+      await loadTodayExtras(db, today),
+      await conversationsNeedingReply(db),
+      await lowStock(db),
+    ] as const;
   });
 
   const appointments = panel.dueToday.filter((i): i is Appointment => i.kind === "appointment");
@@ -330,6 +338,32 @@ export default async function HojePage({
             <Link href="/revisao" className="btn btn-brand">
               Revisar agora ({panel.pendingReviews})
             </Link>
+          </section>
+        )}
+
+        {low.length > 0 && (
+          <section className="card panel" aria-labelledby="estoque-baixo">
+            <h2 id="estoque-baixo">
+              <Package aria-hidden="true" size={19} /> Estoque baixo
+            </h2>
+            <ul className="stack" style={{ gap: 4 }}>
+              {low.slice(0, 4).map((p) => (
+                <li key={p.id}>
+                  <Link href={`/estoque/${p.id}`}>
+                    {p.name}
+                    {p.tireSize ? ` ${p.tireSize}` : ""}
+                  </Link>{" "}
+                  <span className="due-overdue">
+                    · {p.quantity} (mín. {p.minQuantity})
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {low.length > 4 && (
+              <Link href="/estoque?filtro=baixo" style={{ display: "inline-block", marginTop: 8 }}>
+                Ver todos ({low.length})
+              </Link>
+            )}
           </section>
         )}
 

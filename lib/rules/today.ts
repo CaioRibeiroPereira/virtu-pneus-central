@@ -4,7 +4,7 @@
 // assembleToday é puro (testável); loadTodayPanel lê o banco.
 import { and, asc, count, eq, gte, inArray, lt, lte } from "drizzle-orm";
 import type { Db } from "@/db";
-import { appointments, customers, reviewItems, tasks } from "@/db/schema";
+import { appointments, customers, employees, reviewItems, tasks } from "@/db/schema";
 import { addDays, diffInDays, formatTime, storeTimeToUtc, type DateOnly } from "@/lib/dates";
 import { serviceTypeLabel } from "@/lib/labels";
 import { UPCOMING_DAYS } from "./config";
@@ -21,6 +21,8 @@ export type TodayTask = {
   reason: string;
   dueDate: DateOnly;
   viaAgent: boolean;
+  /** Funcionário responsável (D58). */
+  assigneeName?: string | null;
 };
 
 export type TodayAppointment = {
@@ -104,9 +106,11 @@ export async function loadTodayPanel(db: Db, today: DateOnly): Promise<TodayPane
         reason: tasks.reason,
         dueDate: tasks.dueDate,
         source: tasks.source,
+        assigneeName: employees.name,
       })
       .from(tasks)
       .innerJoin(customers, eq(customers.id, tasks.customerId))
+      .leftJoin(employees, eq(employees.id, tasks.assigneeId))
       .where(and(eq(tasks.status, "pendente"), lte(tasks.dueDate, limit)))
       .orderBy(asc(tasks.dueDate)),
     db

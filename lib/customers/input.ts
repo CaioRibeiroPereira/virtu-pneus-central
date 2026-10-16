@@ -2,9 +2,9 @@
 import { z } from "zod";
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
-const required = (max: number, message = "Campo obrigatório") =>
+export const required = (max: number, message = "Campo obrigatório") =>
   z.string().trim().min(1, message).max(max, `Use no máximo ${max} caracteres`);
-const optional = (max: number) =>
+export const optional = (max: number) =>
   z
     .string()
     .trim()
@@ -19,20 +19,25 @@ export function parseMoneyBR(value: string): number {
   return normalized === "" ? NaN : Number(normalized);
 }
 
-const money = z
+export const money = z
   .string()
   .transform(parseMoneyBR)
   .pipe(z.number({ error: "Informe um valor, ex.: 1.840,00" }).nonnegative().max(1_000_000));
-const optionalMoney = z
+export const optionalMoney = z
   .string()
   .transform((v) => (v.trim() ? parseMoneyBR(v) : undefined))
   .pipe(z.number({ error: "Valor inválido" }).nonnegative().max(1_000_000).optional());
-const optionalInt = (max: number) =>
+export const optionalInt = (max: number) =>
   z
     .string()
     .transform((v) => (v.trim() ? Number(v) : undefined))
     .pipe(z.number({ error: "Número inválido" }).int().nonnegative().max(max).optional());
 const date = z.string().regex(DATE_ONLY, "Escolha uma data");
+/** Select opcional de cadastro (funcionário, produto): "" = nenhum. */
+export const optionalId = z
+  .string()
+  .transform((v) => v || undefined)
+  .pipe(z.uuid({ error: "Escolha da lista" }).optional());
 
 export const ORIGINS = ["whatsapp", "indicacao", "balcao", "instagram", "google", "outro"] as const;
 export const STAGES = [
@@ -91,6 +96,7 @@ export const taskForm = z.object({
   title: required(120),
   reason: required(300),
   dueDate: date,
+  assigneeId: optionalId,
 });
 
 export const quoteForm = z.object({
@@ -110,7 +116,30 @@ export const serviceForm = z.object({
   date,
   total: optionalMoney,
   km: optionalInt(5_000_000),
+  employeeId: optionalId,
 });
+
+/** Linhas "Itens do estoque" do formulário de serviço (item_product_N + item_qty_N). */
+export const SERVICE_ITEM_ROWS = 3;
+export function parseServiceItems(form: FormData): {
+  items: { productId: string; quantity: number }[];
+  error?: string;
+} {
+  const items: { productId: string; quantity: number }[] = [];
+  for (let i = 1; i <= SERVICE_ITEM_ROWS; i++) {
+    const productId = String(form.get(`item_product_${i}`) ?? "");
+    const qty = String(form.get(`item_qty_${i}`) ?? "").trim();
+    if (!productId) continue;
+    const quantity = Number(qty || "1");
+    if (!z.uuid().safeParse(productId).success)
+      return { items, error: "Escolha o produto da lista." };
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) {
+      return { items, error: "Quantidade do item: um número inteiro de 1 a 100." };
+    }
+    items.push({ productId, quantity });
+  }
+  return { items };
+}
 
 export const appointmentForm = z.object({
   date,

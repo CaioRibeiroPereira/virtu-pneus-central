@@ -338,3 +338,23 @@ Formato: **contexto → opções → escolha → motivo**. Decisões D1–D13 v�
   - **Tela Conversas:** sem cadastro, a conversa não aparecia em lugar nenhum. A tela mostra todas as conversas, com resposta e o atalho "Criar cadastro" (nome e telefone já preenchidos), e há avisos no menu, no "Mais" do celular e no Hoje. A conversa também é achada pelo telefone, então aparece na ficha logo após o cadastro.
   - **As conversas sobrevivem a "Reiniciar demonstração":** o `TRUNCATE customers CASCADE` do reinício apagava as conversas, porque havia chave estrangeira para clientes. A chave foi removida (migração 0005) e o reinício só zera o atalho `customer_id`. Um teste garante isso.
   - **Uma voz só:** o primeiro teste mostrou o Vito dizendo "o dono vai responder" logo depois de o dono já ter respondido, e prometendo "em instantes" às 23h. Agora, depois que a conversa passa para o dono (o "recebemos" do Vito ou uma resposta do dono), o Vito fica **em silêncio** e só avisa o dono de cada mensagem. Depois de 12 h sem resposta do dono, a conversa volta a ser um atendimento novo. "Em instantes" virou "em breve", que não promete prazo.
+
+**D58 — Estoque, tabela de serviços e equipe** (16/10)
+- Contexto: o Caio pediu gestão de estoque, de serviços e de funcionários. O escopo de cada um foi escolhido por ele:
+  - estoque com baixa automática;
+  - **tabela** de serviços e preços (não ordens de serviço);
+  - funcionário como cadastro + responsável, **sem** login próprio (mantém a D4).
+- Estoque:
+  - produtos (pneu ou item), preço, quantidade e mínimo;
+  - toda mudança de quantidade vira movimentação (entrada, saída por serviço, ajuste por contagem com motivo) e auditoria;
+  - a edição do produto **não** muda a quantidade: só há mudança com histórico;
+  - "estoque baixo" (quantidade ≤ mínimo) aparece no menu, no Hoje e no filtro da tela.
+- **Baixa automática:** ao registrar um serviço na ficha com "Itens do estoque", a baixa acontece **na mesma transação**.
+  - É feita com `UPDATE … SET quantidade = quantidade − n WHERE quantidade >= n`: com dois registros simultâneos, o estoque nunca fica negativo (a lição da D51). O banco ainda tem `CHECK (quantity >= 0)`.
+  - Se faltar qualquer item, **nada é gravado, nem o serviço**, e o formulário diz quanto há.
+  - O mesmo produto em duas linhas é somado antes de conferir.
+  - Serviços registrados pelo Vito (aprovados na Revisão) não dão baixa: a conversa não diz quais pneus saíram.
+- **Tabela de serviços:** nome, tipo, preço e tempo médio. Na ficha, "Usar da tabela de serviços" preenche o orçamento ou o serviço (dá para ajustar antes de salvar).
+- **Equipe:** nome, função, telefone e ativo. "Responsável" nas próximas ações e "Quem fez" nos serviços; a página de cada funcionário mostra as ações pendentes e os serviços feitos; o cartão do Hoje mostra o responsável.
+- Seed: 3 funcionários, 6 serviços na tabela e 7 produtos, sendo 3 abaixo do mínimo, para o alerta aparecer na demo. O "Reiniciar demonstração" recria tudo (e continua preservando as conversas do Telegram).
+- Acessibilidade: as 5 telas novas entraram no axe (2 temas × 2 larguras), com 0 violações. O axe também achou um problema real na tela Conversas: a lista de mensagens com rolagem não era alcançável pelo teclado (WCAG 2.1.1). Agora a área é uma região focável e com nome. Esse problema explica a falha "não reproduzida" da etapa 11: ele só aparece quando a conversa é longa o bastante para rolar.

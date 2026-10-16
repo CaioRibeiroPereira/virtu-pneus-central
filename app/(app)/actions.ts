@@ -23,6 +23,7 @@ import {
   customerForm,
   fieldErrors,
   formToObject,
+  parseServiceItems,
   quoteForm,
   serviceForm,
   taskForm,
@@ -30,6 +31,7 @@ import {
 } from "@/lib/customers/input";
 import { updateCustomerByGestor } from "@/lib/customers/update";
 import { addDays, todayInStore } from "@/lib/dates";
+import { StockError } from "@/lib/oficina/inventory";
 
 export type FormState = {
   ok?: boolean;
@@ -147,7 +149,7 @@ async function quickAction<T>(
 export async function addTaskAction(_prev: FormState, form: FormData) {
   return quickAction(
     form,
-    ["type", "title", "reason", "dueDate"],
+    ["type", "title", "reason", "dueDate", "assigneeId"],
     taskForm,
     (id, data) => withTransactionalDb((db) => addTask(db, id, data)),
     "Próxima ação criada.",
@@ -165,13 +167,26 @@ export async function addQuoteAction(_prev: FormState, form: FormData) {
 }
 
 export async function addServiceAction(_prev: FormState, form: FormData) {
-  return quickAction(
-    form,
-    ["type", "description", "date", "total", "km"],
-    serviceForm,
-    (id, data) => withTransactionalDb((db) => addService(db, id, data)),
-    "Serviço registrado. O pós-venda foi agendado automaticamente.",
-  );
+  const keys = ["type", "description", "date", "total", "km", "employeeId"];
+  const { items, error } = parseServiceItems(form);
+  if (error) return { values: formToObject(form, keys), errors: { items: error } };
+  try {
+    return await quickAction(
+      form,
+      keys,
+      serviceForm,
+      (id, data) => withTransactionalDb((db) => addService(db, id, { ...data, items })),
+      items.length
+        ? "Serviço registrado e estoque atualizado. O pós-venda foi agendado automaticamente."
+        : "Serviço registrado. O pós-venda foi agendado automaticamente.",
+    );
+  } catch (err) {
+    // Estoque insuficiente: nada foi gravado; o formulário mostra o motivo.
+    if (err instanceof StockError) {
+      return { values: formToObject(form, keys), errors: { items: err.message } };
+    }
+    throw err;
+  }
 }
 
 export async function addAppointmentAction(_prev: FormState, form: FormData) {

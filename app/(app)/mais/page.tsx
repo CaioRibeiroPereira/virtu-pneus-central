@@ -1,6 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Activity, ExternalLink, LogOut, MessageSquareText, MessagesSquare } from "lucide-react";
+import {
+  Activity,
+  ExternalLink,
+  LogOut,
+  MessageSquareText,
+  MessagesSquare,
+  Package,
+  UsersRound,
+  Wrench,
+} from "lucide-react";
 import { getDb } from "@/db";
 import { conversationsNeedingReply } from "@/lib/telegram/thread";
 
@@ -32,6 +41,21 @@ export default async function MaisPage() {
                 {waiting}
               </span>
             )}
+          </Link>
+        </li>
+        <li>
+          <Link href="/estoque" className="card btn" style={row}>
+            <Package aria-hidden="true" size={20} /> Estoque
+          </Link>
+        </li>
+        <li>
+          <Link href="/servicos" className="card btn" style={row}>
+            <Wrench aria-hidden="true" size={20} /> Serviços e preços
+          </Link>
+        </li>
+        <li>
+          <Link href="/equipe" className="card btn" style={row}>
+            <UsersRound aria-hidden="true" size={20} /> Equipe
           </Link>
         </li>
         <li>

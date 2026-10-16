@@ -699,3 +699,30 @@ npx -y lighthouse@13.5.0 https://virtu-pneus-central.vercel.app/hoje [--preset=d
 - 7 telas (login, Hoje, Clientes, Ficha, Revisão, Conversas, Simulador) × celular/computador × claro/escuro = 28 medições. Em todas, o endereço final foi a tela pedida (a sessão funcionou).
 - **Acessibilidade 100 nas 28.** Desempenho 93–100; boas práticas 100; SEO 90 só pelo link "Mais" (mantido de propósito).
 - Tabela completa no RESUMO_ENTREGA. O cookie de sessão foi apagado da pasta temporária depois das medições.
+
+---
+
+## Etapa 13 — Estoque, tabela de serviços e equipe (16/10/2026)
+
+**Objetivo:** pedido do Caio. Escopo escolhido por ele: estoque com baixa automática, tabela de preços e funcionário com responsável, sem login próprio. Decisão D58.
+
+- Migração 0006: `employees`, `service_catalog`, `products` (com `CHECK quantity >= 0`), `stock_movements`, `tasks.assignee_id` e `services.employee_id`.
+- `lib/oficina/inventory.ts`: baixa atômica (`WHERE quantity >= n`) dentro da transação do serviço, entrada e ajuste com histórico e auditoria.
+- `lib/oficina/team.ts`: equipe e tabela de serviços.
+- Telas: `/estoque`, `/estoque/[id]`, `/servicos`, `/equipe`, `/equipe/[id]`. A ficha ganhou "Usar da tabela", "Quem fez", "Itens do estoque" e "Responsável"; o Hoje ganhou o painel "Estoque baixo" e o responsável nos cartões.
+- Testes: `tests/integration/oficina.test.ts` (8), que cobre:
+  - a baixa, com o serviço e o responsável;
+  - a falta de estoque, que desfaz tudo, inclusive a baixa do outro item;
+  - a soma de linhas repetidas;
+  - a entrada e o ajuste;
+  - o CHECK do banco;
+  - o responsável na página do funcionário;
+  - o seed.
+
+  Ao todo, 217 testes de unidade e integração e 12 E2E, com as 5 telas novas no axe.
+- Incidente no próprio teste: um `String.replace` com `` $` `` no texto de substituição corrompeu o `a11y.spec.ts`. O arquivo foi restaurado do git e a troca refeita com uma função de substituição.
+- O axe achou o problema da rolagem sem teclado na tela Conversas, explicado na D58.
+```bash
+npm run db:migrate && npm run db:seed     # migração 0006 + demo com equipe, tabela e estoque
+npm run build && npx playwright test      # 12 passando
+```

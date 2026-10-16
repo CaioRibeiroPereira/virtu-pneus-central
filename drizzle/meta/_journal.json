@@ -43,6 +43,13 @@
       "when": 1792115454790,
       "tag": "0005_telegram_sem_fk_cliente",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792117950424,
+      "tag": "0006_oficina_estoque_equipe",
+      "breakpoints": true
     }
   ]
 }

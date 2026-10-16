@@ -8,6 +8,7 @@ import { storeTimeToUtc, todayInStore, type DateOnly } from "@/lib/dates";
 import { normalizePhone } from "@/lib/phone";
 import { syncAutoTasks } from "@/lib/rules/auto-tasks";
 import { normalizePlate } from "@/lib/search";
+import { consumeForService, type ServiceItem } from "@/lib/oficina/inventory";
 import type { CustomerFormData } from "./input";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
@@ -100,13 +101,14 @@ export async function addTask(
     title: string;
     reason: string;
     dueDate: string;
+    assigneeId?: string;
   },
   today = todayInStore(),
 ) {
   return db.transaction(async (tx) => {
     const [row] = await tx
       .insert(tasks)
-      .values({ customerId, ...input })
+      .values({ customerId, ...input, assigneeId: input.assigneeId ?? null })
       .returning({ id: tasks.id });
     await audit(tx, "task", row.id, "create", input);
     return finish(tx, customerId, today);
@@ -154,6 +156,9 @@ export async function addService(
     date: string;
     total?: number;
     km?: number;
+    employeeId?: string;
+    /** Itens do estoque usados: baixa automática na mesma transação (D58). */
+    items?: ServiceItem[];
   },
   today = todayInStore(),
 ) {
@@ -165,11 +170,16 @@ export async function addService(
       performedAt: storeTimeToUtc(input.date, "12:00"),
       total: input.total ?? null,
       km: input.km ?? null,
+      employeeId: input.employeeId ?? null,
     };
     const [row] = await tx.insert(services).values(values).returning({ id: services.id });
+    // Falta de estoque lança StockError: a transação inteira é desfeita (nem o serviço fica).
+    if (input.items?.length) await consumeForService(tx, row.id, input.items);
     await audit(tx, "service", row.id, "create", {
       description: values.description,
       date: input.date,
+      employeeId: values.employeeId,
+      items: input.items ?? [],
     });
     return finish(tx, customerId, today);
   });

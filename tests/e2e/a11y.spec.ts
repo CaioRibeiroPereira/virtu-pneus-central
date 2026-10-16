@@ -42,6 +42,9 @@ for (const theme of THEMES)
           ["/revisao", "07-revisao"],
           ["/simulador", "08-simulador"],
           ["/conversas", "09-conversas"],
+          ["/estoque", "10-estoque"],
+          ["/servicos", "11-servicos"],
+          ["/equipe", "12-equipe"],
         ];
         for (const [path, shot] of pages) {
           await page.goto(path);
@@ -50,6 +53,21 @@ for (const theme of THEMES)
             fullPage: true,
           });
           expect(await axeViolations(page), path).toEqual([]);
+        }
+
+        // Páginas de detalhe: o primeiro produto e o primeiro funcionário.
+        for (const [list, shot] of [
+          ["/estoque", "13-produto"],
+          ["/equipe", "14-funcionario"],
+        ] as const) {
+          await page.goto(list);
+          await page.locator(`main a[href^="${list}/"]`).first().click();
+          await page.waitForURL(new RegExp(`${list}/[0-9a-f-]{36}$`));
+          await page.screenshot({
+            path: `docs/screenshots/depois/${theme.prefix}${vp.name}-${shot}.png`,
+            fullPage: true,
+          });
+          expect(await axeViolations(page), shot).toEqual([]);
         }
 
         // Ficha de um cliente com histórico (o primeiro da lista com "Ricardo").

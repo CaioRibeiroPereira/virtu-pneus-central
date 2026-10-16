@@ -14,6 +14,7 @@ import { ConfirmAppointment, QuoteActions } from "@/components/quote-actions";
 import { TaskActions } from "@/components/task-actions";
 import { TelegramThread } from "@/components/telegram-thread";
 import { telegramThread } from "@/lib/telegram/thread";
+import { oficinaLists } from "@/lib/oficina/lists";
 
 export const metadata: Metadata = { title: "Ficha do cliente | Central de clientes" };
 export const dynamic = "force-dynamic";
@@ -32,6 +33,7 @@ export default async function FichaPage({
   if (!UUID.test(id)) notFound();
   const today = todayInStore();
   const detail = await getCustomerDetail(getDb(), id, today);
+  const lists = await oficinaLists(getDb());
   const thread = detail
     ? await telegramThread(getDb(), {
         id,
@@ -223,7 +225,7 @@ export default async function FichaPage({
         <h2 id="registrar" className="section-title">
           Registrar
         </h2>
-        <QuickActions customerId={c.id} today={today} />
+        <QuickActions customerId={c.id} today={today} lists={lists} />
       </section>
 
       <section className="section" aria-labelledby="historico">

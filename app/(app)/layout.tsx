@@ -5,6 +5,7 @@ import { getDb } from "@/db";
 import { hasSession } from "@/lib/auth/session";
 import { pendingReviewCount } from "@/lib/customers/queries";
 import { conversationsNeedingReply } from "@/lib/telegram/thread";
+import { lowStock } from "@/lib/oficina/inventory";
 import { BottomNav, SidebarNav } from "@/components/nav";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Toaster } from "@/components/toaster";
@@ -14,9 +15,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   if (!(await hasSession())) redirect("/login");
-  const [reviewCount, conversationCount] = await Promise.all([
+  const [reviewCount, conversationCount, low] = await Promise.all([
     pendingReviewCount(getDb()),
     conversationsNeedingReply(getDb()),
+    lowStock(getDb()),
   ]);
 
   return (
@@ -28,7 +30,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Link href="/hoje" className="brand">
           virtù<span>.</span>
         </Link>
-        <SidebarNav reviewCount={reviewCount} conversationCount={conversationCount} />
+        <SidebarNav
+          reviewCount={reviewCount}
+          conversationCount={conversationCount}
+          lowStockCount={low.length}
+        />
         <div className="sidebar-foot">
           <ThemeToggle withLabel />
           <form action="/logout" method="post">

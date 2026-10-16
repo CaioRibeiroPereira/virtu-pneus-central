@@ -233,6 +233,10 @@ export const services = pgTable(
     performedAt: timestamp("performed_at", { withTimezone: true }).notNull(),
     total: money("total"),
     km: integer("km"),
+    /** Funcionário que fez o serviço (D58). */
+    employeeId: uuid("employee_id").references((): AnyPgColumn => employees.id, {
+      onDelete: "set null",
+    }),
     ...origin(),
     ...timestamps,
   },
@@ -279,6 +283,10 @@ export const tasks = pgTable(
     /** Regra que gerou a tarefa (ex.: "R1"); nulo para tarefas manuais. */
     autoRule: text("auto_rule"),
     completedAt: timestamp("completed_at", { withTimezone: true }),
+    /** Funcionário responsável pela ação (D58). */
+    assigneeId: uuid("assignee_id").references((): AnyPgColumn => employees.id, {
+      onDelete: "set null",
+    }),
     ...origin(),
     ...timestamps,
   },
@@ -416,4 +424,73 @@ export const telegramMessages = pgTable(
     index("telegram_messages_chat_idx").on(t.chatId, t.createdAt),
     uniqueIndex("telegram_messages_update_unique").on(t.updateId),
   ],
+);
+
+// ---------- Oficina: equipe, tabela de serviços e estoque (D58) ----------
+
+/** Funcionários: só cadastro e "responsável" (um login só, o do dono — D4). */
+export const employees = pgTable("employees", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  /** Função em texto livre: "Mecânico", "Atendente"… */
+  role: text("role").notNull(),
+  phoneDisplay: text("phone_display"),
+  active: boolean("active").notNull().default(true),
+  ...timestamps,
+});
+
+/** Tabela de serviços e preços da oficina, usada para preencher orçamentos e serviços. */
+export const serviceCatalog = pgTable("service_catalog", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  type: serviceTypeEnum("type").notNull(),
+  price: money("price").notNull(),
+  durationMinutes: integer("duration_minutes"),
+  active: boolean("active").notNull().default(true),
+  ...timestamps,
+});
+
+export const productKindEnum = pgEnum("product_kind", ["pneu", "item"]);
+export const stockMovementKindEnum = pgEnum("stock_movement_kind", [
+  "entrada",
+  "saida_servico",
+  "ajuste",
+]);
+
+export const products = pgTable(
+  "products",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: productKindEnum("kind").notNull().default("pneu"),
+    /** Ex.: "Pirelli Cinturato P1". */
+    name: text("name").notNull(),
+    tireSize: text("tire_size"),
+    /** Preço de venda unitário. */
+    price: money("price").notNull(),
+    quantity: integer("quantity").notNull().default(0),
+    /** Abaixo disto (ou igual), o produto aparece em "estoque baixo". */
+    minQuantity: integer("min_quantity").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    ...timestamps,
+  },
+  // O banco garante: estoque nunca fica negativo, nem com dois registros ao mesmo tempo.
+  (t) => [check("products_quantity_nonnegative", sql`${t.quantity} >= 0`)],
+);
+
+/** Histórico de cada entrada, saída e ajuste (quantidade com sinal). */
+export const stockMovements = pgTable(
+  "stock_movements",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    kind: stockMovementKindEnum("kind").notNull(),
+    /** + entra, − sai. */
+    quantity: integer("quantity").notNull(),
+    note: text("note"),
+    serviceId: uuid("service_id").references(() => services.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("stock_movements_product_idx").on(t.productId, t.createdAt)],
 );
