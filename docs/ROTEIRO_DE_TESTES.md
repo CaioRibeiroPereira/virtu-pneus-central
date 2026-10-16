@@ -128,10 +128,29 @@ Depois de **Reiniciar demonstração**, há 3 sugestões.
 | 6 | Simulador → **6. Loja avisa que o serviço foi feito** → Revisão | Cartão com "Itens do estoque usados" já preenchido (4 × Goodyear) e a explicação | [ ] | |
 | 7 | Troque a quantidade para 40 e aprove | Erro de estoque insuficiente; a quantidade digitada continua; nada aplicado | [ ] | |
 | 8 | Volte para 4 e aprove | Aprovado; Goodyear baixa de 8 para 4 no Estoque | [ ] | |
-| 9 | Simulador → **JSON livre**: troque `type`/`data` para um agendamento com data passada (ex.: `"scheduled_at": "2026-01-10T09:00:00-03:00"`) e envie | Vai para a Revisão com o motivo "A data já passou: confira" | [ ] | |
+| 9 | Simulador → **Evento personalizado (JSON)**: apague o exemplo, cole o JSON abaixo e clique **Enviar evento** | Vai para a Revisão com o motivo "A data já passou: confira" | [ ] | |
 | 10 | Nesse cartão: **Aprovar** sem mudar | Aviso para corrigir a data | [ ] | |
 | 11 | **Editar e aprovar**: escolha outro dia e horário nos campos de data/hora, mude o serviço | Aprovado; aparece na ficha com o dia/horário escolhidos | [ ] | |
 | 12 | Num orçamento em "Editar e aprovar", valor `1.840` | Gravado como R$ 1.840,00 | [ ] | |
+
+
+JSON do teste 4.9 (agendamento da Fernanda para um dia que já passou; para repetir, troque o
+`event_id`):
+
+```json
+{
+  "schema_version": "1.0",
+  "event_id": "teste-manual-data-passada-1",
+  "type": "appointment.requested",
+  "occurred_at": "2026-10-16T10:00:00-03:00",
+  "source": { "channel": "whatsapp", "conversation_id": "teste-manual", "message_ids": [] },
+  "agent": { "name": "vito-extrator", "model": "teste", "prompt_version": "manual" },
+  "confidence": 0.95,
+  "evidence": "Cliente: posso levar o carro sábado de manhã?",
+  "customer": { "phone": "(19) 90000-0002" },
+  "data": { "scheduled_at": "2026-01-10T09:00:00-03:00", "service_type": "alinhamento" }
+}
+```
 
 ---
 
