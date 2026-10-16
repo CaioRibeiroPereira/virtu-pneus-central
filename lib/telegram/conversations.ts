@@ -1,7 +1,7 @@
 // Conversas do Telegram prontas para a extração do Vito (D57): o n8n busca, manda para o MESMO
 // workflow de extração do WhatsApp e depois confirma. Só entram conversas com telefone (é ele que
 // liga os eventos ao cliente) e paradas há IDLE_MS (não extrair no meio da conversa).
-import { and, asc, eq, inArray, isNotNull, isNull, lte, max, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, lt, lte, max, sql } from "drizzle-orm";
 import type { Db } from "@/db";
 import { telegramChats, telegramMessages } from "@/db/schema";
 
@@ -79,7 +79,12 @@ export async function readyConversations(db: Db, now = new Date()): Promise<Read
   return result;
 }
 
-/** Marca como extraídas as mensagens do cliente até `ate` (confirmação do n8n). */
+/**
+ * Marca como extraídas as mensagens do cliente até `ate` (confirmação do n8n).
+ * `ate` vem em milissegundos (JSON), mas o Postgres guarda microssegundos: a última mensagem
+ * (12:00:00.807180) ficaria de fora de "≤ 12:00:00.807" e o n8n extrairia o mesmo lote para
+ * sempre. Por isso o limite é o fim daquele milissegundo.
+ */
 export async function markExtracted(db: Db, chatId: string, ate: Date, now = new Date()) {
   const rows = await db
     .update(telegramMessages)
@@ -89,7 +94,7 @@ export async function markExtracted(db: Db, chatId: string, ate: Date, now = new
         eq(telegramMessages.chatId, chatId),
         eq(telegramMessages.author, "cliente"),
         isNull(telegramMessages.extractedAt),
-        lte(telegramMessages.createdAt, ate),
+        lt(telegramMessages.createdAt, new Date(ate.getTime() + 1)),
       ),
     )
     .returning({ id: telegramMessages.id });

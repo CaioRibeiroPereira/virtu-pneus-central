@@ -69,8 +69,8 @@ export function ProductForm({ product }: { product?: ProductValues }) {
           <TextField
             idPrefix={pre}
             name="tireSize"
-            label="Medida"
-            hint="Ex.: 205/55 R16"
+            label="Medida (pneu)"
+            hint="Obrigatória para pneu. Ex.: 205/55 R16"
             defaultValue={v.tireSize ?? product?.tireSize ?? ""}
             error={e.tireSize}
           />
@@ -100,7 +100,7 @@ export function ProductForm({ product }: { product?: ProductValues }) {
             label="Estoque mínimo"
             required
             inputMode="numeric"
-            hint="Abaixo disso aparece o alerta de estoque baixo"
+            hint="Com essa quantidade ou menos, aparece o alerta de estoque baixo"
             defaultValue={v.minQuantity ?? String(product?.minQuantity ?? 2)}
             error={e.minQuantity}
           />

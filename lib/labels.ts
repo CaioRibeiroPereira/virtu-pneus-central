@@ -32,6 +32,7 @@ export const reviewReasonLabel: Record<string, string> = {
   varios_clientes: "Mais de um cliente possível",
   conflito_edicao_humana: "Conflita com algo que você editou",
   alto_impacto: "Mexe com dinheiro: precisa da sua aprovação",
+  data_passada: "A data já passou: confira",
 };
 
 /** "R$ 1.840,00" */
@@ -83,4 +84,16 @@ export const agentEventLabel: Record<string, string> = {
   "appointment.requested": "agendamento",
   "task.suggested": "próxima ação",
   "service.completed": "serviço feito",
+};
+
+/** Título de cada tipo de sugestão do Vito (cartões e decisões da Revisão). */
+export const agentEventTitle: Record<string, string> = {
+  "customer.upserted": "Atualizar dados do cliente",
+  "vehicle.identified": "Registrar veículo",
+  "interaction.logged": "Registrar atendimento",
+  "quote.created": "Registrar orçamento",
+  "task.suggested": "Criar próxima ação",
+  "appointment.requested": "Criar agendamento",
+  "quote.status_changed": "Mudar situação do orçamento",
+  "service.completed": "Registrar serviço feito",
 };

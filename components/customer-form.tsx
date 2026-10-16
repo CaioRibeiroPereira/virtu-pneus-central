@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { createCustomerAction, updateCustomerAction, type FormState } from "@/app/(app)/actions";
 import { options, originLabel, stageLabel } from "@/lib/labels";
 import { SelectField, TextAreaField, TextField } from "./field";
+import { useActionForm } from "./use-action-form";
 
 type Initial = {
   id?: string;
@@ -26,7 +27,7 @@ export function CustomerForm({
   initial?: Initial;
   mode: "create" | "edit";
 }) {
-  const [state, action, pending] = useActionState<FormState, FormData>(
+  const { state, formAction, pending, formRef, onSubmit } = useActionForm<FormState>(
     mode === "create" ? createCustomerAction : updateCustomerAction,
     {},
   );
@@ -37,7 +38,7 @@ export function CustomerForm({
   const version = state.conflict?.version ?? initial.version;
 
   return (
-    <form action={action} noValidate className="card">
+    <form ref={formRef} action={formAction} onSubmit={onSubmit} noValidate className="card">
       {mode === "edit" && (
         <>
           <input type="hidden" name="id" value={initial.id} />

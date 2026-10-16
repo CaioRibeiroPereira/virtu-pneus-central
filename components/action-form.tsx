@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import type { FormState } from "@/app/(app)/actions";
+import { useActionForm } from "./use-action-form";
 
 type Action = (prev: FormState, form: FormData) => Promise<FormState>;
 
@@ -22,21 +23,27 @@ export function ActionForm({
   open?: boolean;
   children: (errors: Record<string, string>, values: Record<string, string>) => React.ReactNode;
 }) {
-  const [state, formAction, pending] = useActionState<FormState, FormData>(action, {});
+  const { state, formAction, pending, formRef, onSubmit } = useActionForm<FormState>(action, {});
   const details = useRef<HTMLDetailsElement>(null);
-  const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state.ok) {
       toast.success(state.message ?? "Salvo.");
       if (details.current && !open) details.current.open = false;
-      if (!hidden.id) form.current?.reset();
+      // Cadastro novo: limpa para o próximo. Edição: os campos já mostram o que foi salvo.
+      if (!hidden.id) formRef.current?.reset();
     }
-  }, [state, open, hidden.id]);
+  }, [state, open, hidden.id, formRef]);
 
   return (
     <details ref={details} className="card disclosure" open={open || undefined}>
       <summary>{title}</summary>
-      <form ref={form} action={formAction} noValidate style={{ marginTop: 12 }}>
+      <form
+        ref={formRef}
+        action={formAction}
+        onSubmit={onSubmit}
+        noValidate
+        style={{ marginTop: 12 }}
+      >
         {Object.entries(hidden).map(([name, value]) => (
           <input key={name} type="hidden" name={name} value={value} />
         ))}

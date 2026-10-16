@@ -4,13 +4,13 @@ import { notFound } from "next/navigation";
 import { MessageCircle, Pencil, Phone, Sparkles } from "lucide-react";
 import { getDb } from "@/db";
 import { describeDue, formatDate, formatDateTime, todayInStore } from "@/lib/dates";
-import { formatMoney, originLabel, stageLabel } from "@/lib/labels";
+import { formatMoney, originLabel, serviceTypeLabel, stageLabel } from "@/lib/labels";
 import { whatsappMessage } from "@/lib/messages";
 import { whatsappLink } from "@/lib/phone";
 import { getCustomerDetail } from "@/lib/customers/queries";
 import { TIMELINE_KINDS, type TimelineKind } from "@/lib/customers/timeline";
 import { QuickActions } from "@/components/quick-actions";
-import { ConfirmAppointment, QuoteActions } from "@/components/quote-actions";
+import { AppointmentActions, QuoteActions } from "@/components/quote-actions";
 import { TaskActions } from "@/components/task-actions";
 import { TelegramThread } from "@/components/telegram-thread";
 import { telegramThread } from "@/lib/telegram/thread";
@@ -143,6 +143,7 @@ export default async function FichaPage({
                   taskId={t.id}
                   title={t.title}
                   customerName={c.name}
+                  today={today}
                   whatsappHref={
                     c.phoneE164 ? whatsappLink(c.phoneE164, whatsappMessage(t.type, c.name)) : null
                   }
@@ -210,12 +211,19 @@ export default async function FichaPage({
           {detail.nextAppointment && (
             <div className="card">
               <h3>Próximo agendamento</h3>
-              <p style={{ marginTop: 8 }}>{formatDateTime(detail.nextAppointment.scheduledAt)}</p>
-              {detail.nextAppointment.status === "agendado" && (
-                <div style={{ marginTop: 8 }}>
-                  <ConfirmAppointment appointmentId={detail.nextAppointment.id} />
-                </div>
-              )}
+              <p style={{ marginTop: 8 }}>
+                {formatDateTime(detail.nextAppointment.scheduledAt)} ·{" "}
+                {serviceTypeLabel[detail.nextAppointment.serviceType] ?? "Serviço"} ·{" "}
+                {detail.nextAppointment.status === "agendado" ? (
+                  <span className="due-today">a confirmar</span>
+                ) : (
+                  "confirmado"
+                )}
+              </p>
+              <AppointmentActions
+                appointmentId={detail.nextAppointment.id}
+                confirmed={detail.nextAppointment.status === "confirmado"}
+              />
             </div>
           )}
         </div>

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."review_reason" ADD VALUE 'data_passada';

@@ -81,6 +81,8 @@ for (const theme of THEMES)
         expect(await axeViolations(page), "ficha").toEqual([]);
 
         await page.getByRole("link", { name: "Editar" }).click();
+        // Espera a tela de edição: sem isso, a foto saía no meio da navegação, com a altura da ficha.
+        await expect(page.getByRole("heading", { level: 1, name: "Editar cliente" })).toBeVisible();
         await page.screenshot({
           path: `docs/screenshots/depois/${theme.prefix}${vp.name}-05-editar.png`,
           fullPage: true,

@@ -739,3 +739,55 @@ npm run build && npx playwright test      # 12 passando
 - `components/review-card.tsx`: campos "Itens do estoque usados", preenchidos com a sugestão.
 - Simulador: conversa 7 (`simulator/presets/7-servico-feito.json`).
 - Testes: 230 de unidade e integração; 13 E2E (o novo fluxo D59 de ponta a ponta incluído).
+
+---
+
+## Etapa 15 — O sistema usado como usuário (16/10/2026)
+
+**Objetivo:** pedido do Caio: "ser o usuário do sistema" e conferir se tudo está certo e lógico — telas, formulários, regras e fluxos. Decisões em D60.
+
+**Como:** build de produção local (`npm run build && npm run start -- -p 3100`) sobre o banco da demo, com roteiros do Playwright fora do repositório: login, Hoje, Clientes, Novo/Editar, ficha (4 formulários + botões), Revisão, Simulador (7 conversas + JSON livre), Estoque, Serviços, Equipe, Conversas, Saúde, tema, celular e as APIs. Cada formulário foi enviado vazio, com erro de propósito e certo; cada regra foi conferida contra os dados da demo. O caminho de erro do Telegram foi testado com uma conversa falsa, criada e apagada no fim, para não mandar nada ao chat real. A demo foi reiniciada ao final.
+
+### 15.1 Achados e correções
+
+| # | Onde | O que o usuário via | Correção | Teste |
+|---|---|---|---|---|
+| 1 | Telegram/n8n | A última mensagem do cliente nunca ficava "extraída" (µs no Postgres × ms no JSON): o mesmo lote ia ao Gemini **a cada minuto** desde a noite anterior, e recriava a sugestão a cada "Reiniciar" | limite = fim do milissegundo | integração (falha no código antigo) |
+| 2 | Ficha, oficina, Revisão | "1.840" virava **R$ 1,84** | `lib/money.ts`; ambíguos recusados | unidade |
+| 3 | Todos os formulários | Depois de um erro, listas e caixas voltavam ao inicial: "Instagram"→"WhatsApp", "Perdido"→"Novo contato", itens do estoque e correções da Revisão sumiam | `useActionForm` (envio sem o reset do React 19) + foco no 1º erro | E2E exploratório |
+| 4 | Hoje/ficha | Adiar para data passada **derrubava a página** (erro do Next, em inglês); idem concluir algo já concluído em outra aba | ações devolvem resultado (aviso); `min` no campo; `error.tsx` | integração + roteiro |
+| 5 | Revisão | Aprovar "orçamento aprovado" sem orçamento em aberto derrubava a página | aviso + transação desfeita | integração |
+| 6 | Ficha | Servidor aceitava ação com prazo passado, serviço "feito" no futuro e agendamento no passado | regras de data no servidor | unidade |
+| 7 | Regra R4 | Agendamento para hoje nascia com "atrasado há 1 dia"; R4 de agendamento que já passou ficava para sempre | vence hoje; cancela quando o dia passa | unidade + integração |
+| 8 | Hoje | "10 contatos" com o filtro "Tudo 9": o agendamento confirmado contava e o anel nunca chegava a 100% | conta só ações | roteiro |
+| 9 | Ficha | Concluir "Confirmar agendamento" não confirmava o agendamento | confirma; desfazer volta | integração |
+| 10 | Revisão | Datas cruas em UTC, códigos (`pos_venda`), correção digitando ISO, erro do zod em inglês | campos tipados + rótulos + mensagens em português | unidade + axe |
+| 11 | Navegação | 404 em inglês ("This page could not be found.") | `not-found.tsx` (dentro e fora do menu) | roteiro + axe |
+| 12 | Textos | "1 já atrasados"; "Troca de pneus feito em" | concordância | unidade |
+| 13 | Revisão | Telefone em E.164 cru; "Decididas" com o tipo técnico (`service.completed`) | formato da ficha; título em português | roteiro |
+| 14 | Estoque | Pneu cadastrado sem medida (a sugestão de baixa depende dela); "Ativo" desmarcado no cadastro era ignorado | medida obrigatória para pneu; `active` gravado | unidade + integração |
+| 15 | Funil | A etapa nunca mudava com orçamento, agendamento ou serviço | etapa acompanha os fatos (D60) | unidade + integração |
+| 16 | Agendamento | Sem como cancelar (a R4 e a agenda continuavam) | "Cancelar agendamento" | integração |
+| 17 | Ficha | Sem como cadastrar veículo depois do cadastro; atendimento só pelo Vito | "Novo veículo" e "Registrar atendimento" | integração |
+| 18 | Vito | Agendamento com dia passado entrava sozinho | vai para a Revisão ("A data já passou") | integração |
+| 19 | Ficha | Recusar orçamento não perguntava o motivo | motivo opcional, no histórico | roteiro |
+| 20 | Conversas | Texto da resposta sumia quando o envio falhava | mantido (item 3) | roteiro |
+| 21 | Menores | `/login` logado mostrava o formulário; foco ia para o `<body>` após senha errada; Saúde com hora UTC crua e sem as tabelas novas; dica do mínimo dizia "abaixo" (a regra é ≤); telefone de funcionário aceitava "abc"; WhatsApp pedia confirmação de horário já confirmado | cada um corrigido | roteiro + unidade |
+
+**Incidente operacional (item 1):** ao descobrir o laço, marquei como extraída a única mensagem presa (uma linha, a do teste do Caio) para parar as chamadas ao Gemini até o deploy da correção.
+
+### 15.2 Conferido e certo
+
+Login (senha errada com atraso, `next` só interno, sair só por POST, cookie `httpOnly`/`Lax`/7 dias); busca sem acento, por telefone e por placa; filtros; celular sem rolagem lateral em todas as telas; conflito de edição em duas abas; telefone duplicado com link; motivo da perda; confirmação do cliente provisório; R1–R4 batendo com a demo; concluir/desfazer e adiar; WhatsApp com mensagem por tipo; aprovar/recusar cancela a R1; confirmar cancela a R4; simulador (aplica, revisão, `duplicate`, JSON inválido, limite de 20); Revisão (criar cliente, associar, rejeitar com nota, baixa sugerida, estoque insuficiente mantém pendente); estoque (entrada, ajuste com motivo, histórico, inativo some das listas); tabela de serviços e equipe (inativos somem da ficha); Conversas (validação, erro de envio); tema claro/escuro salvo; APIs (401, 405, 413, 415, 422); n8n com o resumo às 7h45 e o Telegram a cada minuto.
+
+### 15.3 Verificações
+
+```bash
+npx tsc --noEmit && npx eslint . && npx prettier --check .   # limpos
+npx vitest run                                               # 279 passando (24 arquivos)
+npm run build && E2E_BASE_URL=http://localhost:3100 npx playwright test   # 13 passando
+npm run db:migrate                                           # 0007: motivo "data_passada"
+```
+- Testes novos: `tests/unit/forms.test.ts` (31), `tests/integration/qa-fluxos.test.ts` (14), 3 em `agent-rules` e 1 em `telegram`.
+- axe nas partes novas (Revisão em modo de correção, recusa com motivo, novo veículo com erro, páginas de não encontrado): 16 varreduras, 2 temas × 375/1280, **0 violações**.
+- Os próprios testes E2E tinham dois pontos frágeis, corrigidos: a captura de "Editar cliente" saía no meio da navegação (com a altura da ficha, um vazio enorme no fim) e o login esperava o Hoje por só 5 s (com o Neon lento, a primeira carga passa disso). As capturas de `docs/screenshots/depois/` foram regeradas com a demo limpa.

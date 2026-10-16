@@ -225,8 +225,56 @@ describe("computeAutoTasks (§7.1)", () => {
             },
           ],
         },
+        today,
       ),
     ).toEqual(["t1", "t3"]);
+  });
+
+  it("R4 de agendamento marcado para hoje vence hoje (não nasce atrasada)", () => {
+    const [r4] = computeAutoTasks(
+      {
+        quotes: [],
+        services: [],
+        appointments: [
+          {
+            id: "a9",
+            customerId: "c9",
+            status: "agendado",
+            scheduledAt: storeTimeToUtc(today, "16:00"),
+            serviceType: "alinhamento",
+          },
+        ],
+      },
+      today,
+    );
+    expect(r4).toMatchObject({ autoRule: "R4", dueDate: today });
+  });
+
+  it("R4 pendente de agendamento cujo dia já passou é cancelada", () => {
+    const appointment = (id: string, day: string) => ({
+      id,
+      customerId: "c3",
+      status: "agendado",
+      scheduledAt: storeTimeToUtc(day, "09:00"),
+      serviceType: "alinhamento",
+    });
+    expect(
+      staleAutoTasks(
+        [
+          { id: "ontem", autoRule: "R4", quoteId: null, appointmentId: "a-ontem" },
+          { id: "hoje", autoRule: "R4", quoteId: null, appointmentId: "a-hoje" },
+        ],
+        {
+          quotes: [],
+          appointments: [appointment("a-ontem", "2026-10-13"), appointment("a-hoje", today)],
+        },
+        today,
+      ),
+    ).toEqual(["ontem"]);
+  });
+
+  it("R3 em português certo: 'Troca de pneus em 07/10/2026' (sem 'feito')", () => {
+    expect(by("R3")[0].reason).toBe("Troca de pneus em 07/10/2026: hora de revisar");
   });
 });
 

@@ -3,15 +3,39 @@
 // ressincroniza as regras automáticas do cliente (§7.1) — tudo ou nada.
 import { and, eq } from "drizzle-orm";
 import type { Db } from "@/db";
-import { appointments, auditLog, customers, quotes, services, tasks, vehicles } from "@/db/schema";
+import {
+  appointments,
+  auditLog,
+  customers,
+  interactions,
+  quotes,
+  services,
+  tasks,
+  vehicles,
+} from "@/db/schema";
 import { storeTimeToUtc, todayInStore, type DateOnly } from "@/lib/dates";
 import { normalizePhone } from "@/lib/phone";
 import { syncAutoTasks } from "@/lib/rules/auto-tasks";
 import { normalizePlate } from "@/lib/search";
 import { consumeForService, type ServiceItem } from "@/lib/oficina/inventory";
 import type { CustomerFormData } from "./input";
+import { advanceStage } from "./stage";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+
+/**
+ * Recusa de uma regra de negócio, com a mensagem para o gestor. Nada foi gravado (a transação
+ * desfaz tudo) e a tela mostra o motivo em vez da página de erro. `field`: campo do formulário.
+ */
+export class CommandError extends Error {
+  constructor(
+    message: string,
+    readonly field?: string,
+  ) {
+    super(message);
+    this.name = "CommandError";
+  }
+}
 
 async function audit(
   tx: Tx,
@@ -143,6 +167,7 @@ export async function addQuote(
       description: values.description,
       total: values.total,
     });
+    await advanceStage(tx, customerId, "orcamento_enviado");
     return finish(tx, customerId, today);
   });
 }
@@ -181,6 +206,7 @@ export async function addService(
       employeeId: values.employeeId,
       items: input.items ?? [],
     });
+    await advanceStage(tx, customerId, "cliente");
     return finish(tx, customerId, today);
   });
 }
@@ -204,6 +230,7 @@ export async function addAppointment(
     };
     const [row] = await tx.insert(appointments).values(values).returning({ id: appointments.id });
     await audit(tx, "appointment", row.id, "create", input);
+    await advanceStage(tx, customerId, "agendado");
     return finish(tx, customerId, today);
   });
 }
@@ -217,7 +244,11 @@ export async function setQuoteStatus(
 ) {
   return db.transaction(async (tx) => {
     const [quote] = await tx.select().from(quotes).where(eq(quotes.id, quoteId));
-    if (!quote) throw new Error("Orçamento não encontrado");
+    if (!quote) throw new CommandError("Orçamento não encontrado.");
+    // Duas abas abertas: a segunda não desfaz a decisão da primeira.
+    if (quote.status !== "enviado") {
+      throw new CommandError("Este orçamento já foi decidido. Atualize a página.");
+    }
     await tx
       .update(quotes)
       .set({
@@ -234,13 +265,45 @@ export async function setQuoteStatus(
 export async function setTaskStatus(db: Db, taskId: string, status: "concluida" | "pendente") {
   return db.transaction(async (tx) => {
     const [task] = await tx.select().from(tasks).where(eq(tasks.id, taskId));
-    if (!task) throw new Error("Tarefa não encontrada");
+    if (!task) throw new CommandError("Esta ação não existe mais.");
+    if (status === "concluida" && task.status !== "pendente") {
+      throw new CommandError("Esta ação já foi concluída ou cancelada. Atualize a página.");
+    }
+    if (status === "pendente" && task.status !== "concluida") {
+      throw new CommandError("Esta ação não pode ser reaberta.");
+    }
     await tx
       .update(tasks)
       .set({ status, completedAt: status === "concluida" ? new Date() : null })
       .where(eq(tasks.id, taskId));
     await audit(tx, "task", taskId, "update", { status }, { status: task.status });
-    return task.customerId;
+
+    // "Confirmar agendamento" (R4) concluída = o cliente confirmou: o agendamento passa a
+    // confirmado. Desfazer volta o agendamento para "a confirmar".
+    let note: string | undefined;
+    if (task.autoRule === "R4" && task.appointmentId) {
+      const [from, to] =
+        status === "concluida"
+          ? (["agendado", "confirmado"] as const)
+          : (["confirmado", "agendado"] as const);
+      const [changed] = await tx
+        .update(appointments)
+        .set({ status: to })
+        .where(and(eq(appointments.id, task.appointmentId), eq(appointments.status, from)))
+        .returning({ id: appointments.id });
+      if (changed) {
+        await audit(
+          tx,
+          "appointment",
+          changed.id,
+          "update",
+          { status: to, motivo: "ação Confirmar agendamento" },
+          { status: from },
+        );
+        if (status === "concluida") note = "O agendamento ficou como confirmado.";
+      }
+    }
+    return { customerId: task.customerId, note };
   });
 }
 
@@ -250,7 +313,8 @@ export async function snoozeTask(db: Db, taskId: string, newDue: DateOnly) {
       .select()
       .from(tasks)
       .where(and(eq(tasks.id, taskId), eq(tasks.status, "pendente")));
-    if (!task) throw new Error("Tarefa não encontrada ou já concluída");
+    if (!task)
+      throw new CommandError("Esta ação já foi concluída ou cancelada. Atualize a página.");
     await tx
       .update(tasks)
       .set({ dueDate: newDue, snoozedCount: task.snoozedCount + 1 })
@@ -268,9 +332,70 @@ export async function setAppointmentStatus(
 ) {
   return db.transaction(async (tx) => {
     const [appt] = await tx.select().from(appointments).where(eq(appointments.id, appointmentId));
-    if (!appt) throw new Error("Agendamento não encontrado");
+    if (!appt) throw new CommandError("Agendamento não encontrado.");
+    const allowed: Record<string, string[]> = {
+      confirmado: ["agendado"],
+      cancelado: ["agendado", "confirmado"],
+    };
+    if (allowed[status] && !allowed[status].includes(appt.status)) {
+      throw new CommandError("Este agendamento já mudou de situação. Atualize a página.");
+    }
     await tx.update(appointments).set({ status }).where(eq(appointments.id, appointmentId));
     await audit(tx, "appointment", appointmentId, "update", { status }, { status: appt.status });
     return finish(tx, appt.customerId, today);
+  });
+}
+
+/** Veículo novo de um cliente já cadastrado (trocou de carro ou tem mais de um). */
+export async function addVehicle(
+  db: Db,
+  customerId: string,
+  input: {
+    vehicleModel?: string;
+    vehiclePlate?: string;
+    vehicleTire?: string;
+    vehicleYear?: number;
+  },
+) {
+  return db.transaction(async (tx) => {
+    const plate = input.vehiclePlate ? normalizePlate(input.vehiclePlate) : null;
+    if (plate) {
+      const [same] = await tx
+        .select({ id: vehicles.id })
+        .from(vehicles)
+        .where(and(eq(vehicles.customerId, customerId), eq(vehicles.plate, plate)));
+      if (same) {
+        throw new CommandError("Este cliente já tem um veículo com esta placa.", "vehiclePlate");
+      }
+    }
+    const [row] = await tx
+      .insert(vehicles)
+      .values({
+        customerId,
+        model: input.vehicleModel ?? null,
+        plate,
+        tireSize: input.vehicleTire ?? null,
+        year: input.vehicleYear ?? null,
+      })
+      .returning({ id: vehicles.id });
+    await audit(tx, "vehicle", row.id, "create", input);
+    return customerId;
+  });
+}
+
+/** Atendimento feito pelo próprio gestor (ligou, passou na loja): entra no histórico da ficha. */
+export async function addInteraction(
+  db: Db,
+  customerId: string,
+  input: { channel: "whatsapp" | "telefone" | "balcao"; summary: string },
+  now = new Date(),
+) {
+  return db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(interactions)
+      .values({ customerId, channel: input.channel, summary: input.summary, occurredAt: now })
+      .returning({ id: interactions.id });
+    await audit(tx, "interaction", row.id, "create", input);
+    return customerId;
   });
 }

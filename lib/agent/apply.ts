@@ -12,6 +12,8 @@ import {
   tasks,
   vehicles,
 } from "@/db/schema";
+import { todayInStore, type DateOnly } from "@/lib/dates";
+import { advanceStage } from "@/lib/customers/stage";
 import { normalizePlate } from "@/lib/search";
 import type { AgentEvent } from "./schema";
 
@@ -24,6 +26,8 @@ export type ApplyContext = {
   actor: "agente" | "gestor";
   /** Na aprovação pelo gestor, permite sobrescrever campos já preenchidos. */
   overwrite?: boolean;
+  /** Dia da loja (prazo de tarefa sugerida no passado vira hoje). */
+  today?: DateOnly;
 };
 
 /** Campos do cliente que um evento customer.upserted pode preencher. */
@@ -212,16 +216,20 @@ export async function applyAgentEvent(
         action: "create",
         after: { description: values.description, total: values.total, status: values.status },
       });
+      await advanceStage(db, ctx.customerId, "orcamento_enviado", ctx.agentEventId);
       return [{ entity: "quote", id: row.id }];
     }
 
     case "task.suggested": {
+      // Prazo no passado (a IA errou a data ou a conversa chegou atrasada): vira hoje, para a
+      // ação não nascer atrasada.
+      const today = ctx.today ?? todayInStore();
       const values = {
         customerId: ctx.customerId,
         type: event.data.type,
         title: event.data.title,
         reason: event.data.reason,
-        dueDate: event.data.due_date,
+        dueDate: event.data.due_date < today ? today : event.data.due_date,
         ...origin(ctx),
       };
       const [row] = await db.insert(tasks).values(values).returning({ id: tasks.id });
@@ -249,6 +257,7 @@ export async function applyAgentEvent(
         action: "create",
         after: { scheduledAt: values.scheduledAt.toISOString(), serviceType: values.serviceType },
       });
+      await advanceStage(db, ctx.customerId, "agendado", ctx.agentEventId);
       return [{ entity: "appointment", id: row.id }];
     }
 
@@ -292,6 +301,7 @@ export async function applyAgentEvent(
         action: "create",
         after: { description: values.description },
       });
+      await advanceStage(db, ctx.customerId, "cliente", ctx.agentEventId);
       return [{ entity: "service", id: row.id }];
     }
   }

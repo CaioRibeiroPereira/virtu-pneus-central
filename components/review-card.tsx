@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
@@ -9,30 +9,78 @@ import {
   rejectReviewAction,
   type ReviewFormState,
 } from "@/app/(app)/revisao/actions";
-import { reviewReasonLabel } from "@/lib/labels";
+import { agentEventTitle, reviewReasonLabel } from "@/lib/labels";
 import type { ReviewCard as Card } from "@/lib/review/queries";
+import { EDIT_FIELDS, editDefaults, type EditField } from "@/lib/review/fields";
 import type { StockSuggestion } from "@/lib/oficina/suggest";
 
-const TYPE_LABEL: Record<string, string> = {
-  "customer.upserted": "Atualizar dados do cliente",
-  "vehicle.identified": "Registrar veículo",
-  "interaction.logged": "Registrar atendimento",
-  "quote.created": "Registrar orçamento",
-  "task.suggested": "Criar próxima ação",
-  "appointment.requested": "Criar agendamento",
-  "quote.status_changed": "Mudar situação do orçamento",
-  "service.completed": "Registrar serviço feito",
-};
+/** Campo de correção com o tipo certo (data, dia e hora, valor, lista). */
+function EditInput({ cardId, field, value }: { cardId: string; field: EditField; value: unknown }) {
+  const id = `${cardId}-${field.key}`;
+  const defaults = editDefaults(field, value);
+  if (field.kind === "datetime") {
+    return (
+      <fieldset className="field" style={{ border: 0, padding: 0, margin: 0 }}>
+        <legend className="label">{field.label}</legend>
+        <div className="btn-row">
+          <label className="sr-only" htmlFor={`${id}-date`}>
+            {field.label}: dia
+          </label>
+          <input
+            id={`${id}-date`}
+            type="date"
+            name={`data.${field.key}__date`}
+            defaultValue={defaults[`${field.key}__date`]}
+            style={{ flex: 1 }}
+          />
+          <label className="sr-only" htmlFor={`${id}-time`}>
+            {field.label}: horário
+          </label>
+          <input
+            id={`${id}-time`}
+            type="time"
+            name={`data.${field.key}__time`}
+            defaultValue={defaults[`${field.key}__time`]}
+            style={{ width: 130 }}
+          />
+        </div>
+      </fieldset>
+    );
+  }
+  return (
+    <div className="field">
+      <label htmlFor={id}>{field.label}</label>
+      {field.kind === "select" ? (
+        <select id={id} name={`data.${field.key}`} defaultValue={defaults[field.key]}>
+          {!field.required && <option value="">—</option>}
+          {field.options?.map(([v, text]) => (
+            <option key={v} value={v}>
+              {text}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          id={id}
+          name={`data.${field.key}`}
+          type={field.kind === "date" ? "date" : field.kind === "email" ? "email" : "text"}
+          inputMode={
+            field.kind === "money" ? "decimal" : field.kind === "int" ? "numeric" : undefined
+          }
+          defaultValue={defaults[field.key]}
+        />
+      )}
+    </div>
+  );
+}
 
 export function ReviewCard({
   card,
   customers,
-  fieldLabels,
   stock,
 }: {
   card: Card;
   customers: { id: string; name: string; phone: string | null }[];
-  fieldLabels: Record<string, string>;
   /** "Serviço feito": produtos do estoque e a sugestão de baixa (D59). */
   stock?: { products: { id: string; label: string }[]; suggestion: StockSuggestion };
 }) {
@@ -56,11 +104,15 @@ export function ReviewCard({
   const [mode, setMode] = useState<"aprovar" | "editar">("aprovar");
   const needsCustomer = !card.customer;
   const [choice, setChoice] = useState(needsCustomer ? "" : `existing:${card.customer?.id}`);
+  // Erro da última decisão tentada (aprovar ou rejeitar), com o foco levado até ele.
+  const [lastIntent, setLastIntent] = useState<"aprovar" | "rejeitar">("aprovar");
+  const lastError = lastIntent === "rejeitar" ? rejectState.error : approveState.error;
+  const alertRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => {
+    if (approveState.error || rejectState.error) alertRef.current?.focus();
+  }, [approveState, rejectState]);
 
-  const error = approveState.error ?? rejectState.error;
-  const editable = Object.entries(card.data).filter(
-    ([, v]) => typeof v === "string" || typeof v === "number",
-  );
+  const fields = EDIT_FIELDS[card.event.type] ?? [];
   const pct = Math.round(card.event.confidence * 100);
   const titleId = `rev-${card.id}`;
 
@@ -68,7 +120,7 @@ export function ReviewCard({
     <li className="card" aria-labelledby={titleId}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
         <h2 id={titleId} style={{ fontSize: "1.0625rem" }}>
-          {TYPE_LABEL[card.event.type] ?? card.event.type}
+          {agentEventTitle[card.event.type] ?? card.event.type}
         </h2>
         <span className="badge badge-warning">{reviewReasonLabel[card.reason] ?? card.reason}</span>
       </div>
@@ -119,13 +171,26 @@ export function ReviewCard({
         </tbody>
       </table>
 
-      {error && (
-        <p className="alert" role="alert" style={{ marginTop: 12 }}>
-          {error}
+      {lastError && (
+        <p ref={alertRef} tabIndex={-1} className="alert" role="alert" style={{ marginTop: 12 }}>
+          {lastError}
         </p>
       )}
 
-      <form action={approve} style={{ marginTop: 16 }}>
+      {/* Envio pelo onSubmit (sem a limpeza automática do React): com erro, as correções, o
+          cliente escolhido e os itens do estoque continuam como o gestor deixou. */}
+      <form
+        action={approve}
+        onSubmit={(e) => {
+          e.preventDefault();
+          const submitter = (e.nativeEvent as SubmitEvent).submitter;
+          const data = new FormData(e.currentTarget, submitter);
+          const intent = data.get("intent") === "rejeitar" ? "rejeitar" : "aprovar";
+          setLastIntent(intent);
+          startTransition(() => (intent === "rejeitar" ? reject : approve)(data));
+        }}
+        style={{ marginTop: 16 }}
+      >
         <input type="hidden" name="reviewId" value={card.id} />
         <input type="hidden" name="mode" value={mode} />
         {needsCustomer && (
@@ -159,20 +224,12 @@ export function ReviewCard({
         )}
         {!needsCustomer && <input type="hidden" name="customerChoice" value={choice} />}
 
-        {mode === "editar" && editable.length > 0 && (
+        {mode === "editar" && fields.length > 0 && (
           <fieldset style={{ border: 0, padding: 0, margin: "0 0 12px" }}>
             <legend style={{ fontWeight: 700, marginBottom: 6 }}>Corrigir antes de aprovar</legend>
             <div className="form-grid">
-              {editable.map(([key, value]) => (
-                <div className="field" key={key}>
-                  <label htmlFor={`${card.id}-${key}`}>{fieldLabels[key] ?? key}</label>
-                  <input
-                    id={`${card.id}-${key}`}
-                    name={`data.${key}`}
-                    defaultValue={String(value)}
-                    inputMode={typeof value === "number" ? "decimal" : undefined}
-                  />
-                </div>
+              {fields.map((f) => (
+                <EditInput key={f.key} cardId={card.id} field={f} value={card.data[f.key]} />
               ))}
             </div>
           </fieldset>
@@ -229,10 +286,16 @@ export function ReviewCard({
         </div>
 
         <div className="btn-row">
-          <button type="submit" className="btn btn-primary" disabled={approving || rejecting}>
+          <button
+            type="submit"
+            name="intent"
+            value="aprovar"
+            className="btn btn-primary"
+            disabled={approving || rejecting}
+          >
             {mode === "editar" ? "Salvar correção e aprovar" : "Aprovar"}
           </button>
-          {editable.length > 0 && (
+          {fields.length > 0 && (
             <button
               type="button"
               className="btn"
@@ -244,6 +307,8 @@ export function ReviewCard({
           )}
           <button
             type="submit"
+            name="intent"
+            value="rejeitar"
             className="btn btn-danger"
             formAction={reject}
             formNoValidate

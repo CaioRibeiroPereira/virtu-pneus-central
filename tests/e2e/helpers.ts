@@ -7,7 +7,8 @@ export async function login(page: Page) {
   await page.goto("/login");
   await page.getByLabel("Senha do gestor").fill(password);
   await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page).toHaveURL(/\/hoje$/);
+  // O primeiro Hoje depois do login sincroniza as regras no banco: com o Neon lento, passa de 5 s.
+  await expect(page).toHaveURL(/\/hoje$/, { timeout: 15_000 });
 }
 
 /** Varredura axe com as regras WCAG 2.0/2.1/2.2 nível A e AA. */

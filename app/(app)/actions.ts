@@ -9,9 +9,12 @@ import { withTransactionalDb } from "@/db";
 import { requireSession } from "@/lib/auth/session";
 import {
   addAppointment,
+  addInteraction,
   addQuote,
   addService,
   addTask,
+  addVehicle,
+  CommandError,
   createCustomer,
   setAppointmentStatus,
   setQuoteStatus,
@@ -19,18 +22,20 @@ import {
   snoozeTask,
 } from "@/lib/customers/commands";
 import {
-  appointmentForm,
+  appointmentFormAt,
   customerForm,
   fieldErrors,
   formToObject,
+  interactionForm,
+  newVehicleForm,
   parseServiceItems,
-  quoteForm,
-  serviceForm,
-  taskForm,
+  quoteFormAt,
+  serviceFormAt,
+  taskFormAt,
   vehicleForm,
 } from "@/lib/customers/input";
 import { updateCustomerByGestor } from "@/lib/customers/update";
-import { addDays, todayInStore } from "@/lib/dates";
+import { addDays, formatTime, todayInStore } from "@/lib/dates";
 import { StockError } from "@/lib/oficina/inventory";
 
 export type FormState = {
@@ -141,16 +146,35 @@ async function quickAction<T>(
   const values = formToObject(form, keys);
   const parsed = schema.safeParse(values);
   if (!parsed.success) return { values, errors: fieldErrors(parsed.error) };
-  await run(customerId, parsed.data);
+  try {
+    await run(customerId, parsed.data);
+  } catch (err) {
+    // Regra recusada (estoque insuficiente, placa repetida…): nada foi gravado e o formulário
+    // mostra o motivo, com o que foi digitado.
+    if (err instanceof StockError) return { values, errors: { items: err.message } };
+    if (err instanceof CommandError)
+      return { values, errors: { [err.field ?? "_form"]: err.message } };
+    throw err;
+  }
   refresh(customerId);
   return { ok: true, message: successMessage };
+}
+
+export async function addInteractionAction(_prev: FormState, form: FormData) {
+  return quickAction(
+    form,
+    ["channel", "summary"],
+    interactionForm,
+    (id, data) => withTransactionalDb((db) => addInteraction(db, id, data)),
+    "Atendimento registrado no histórico.",
+  );
 }
 
 export async function addTaskAction(_prev: FormState, form: FormData) {
   return quickAction(
     form,
     ["type", "title", "reason", "dueDate", "assigneeId"],
-    taskForm,
+    taskFormAt(todayInStore()),
     (id, data) => withTransactionalDb((db) => addTask(db, id, data)),
     "Próxima ação criada.",
   );
@@ -160,7 +184,7 @@ export async function addQuoteAction(_prev: FormState, form: FormData) {
   return quickAction(
     form,
     ["description", "total", "tireSize", "quantity", "validUntil"],
-    quoteForm,
+    quoteFormAt(todayInStore()),
     (id, data) => withTransactionalDb((db) => addQuote(db, id, data)),
     "Orçamento registrado como enviado.",
   );
@@ -170,69 +194,108 @@ export async function addServiceAction(_prev: FormState, form: FormData) {
   const keys = ["type", "description", "date", "total", "km", "employeeId"];
   const { items, error } = parseServiceItems(form);
   if (error) return { values: formToObject(form, keys), errors: { items: error } };
-  try {
-    return await quickAction(
-      form,
-      keys,
-      serviceForm,
-      (id, data) => withTransactionalDb((db) => addService(db, id, { ...data, items })),
-      items.length
-        ? "Serviço registrado e estoque atualizado. O pós-venda foi agendado automaticamente."
-        : "Serviço registrado. O pós-venda foi agendado automaticamente.",
-    );
-  } catch (err) {
-    // Estoque insuficiente: nada foi gravado; o formulário mostra o motivo.
-    if (err instanceof StockError) {
-      return { values: formToObject(form, keys), errors: { items: err.message } };
-    }
-    throw err;
-  }
+  return quickAction(
+    form,
+    keys,
+    serviceFormAt(todayInStore()),
+    (id, data) => withTransactionalDb((db) => addService(db, id, { ...data, items })),
+    items.length
+      ? "Serviço registrado e estoque atualizado. O pós-venda foi agendado automaticamente."
+      : "Serviço registrado. O pós-venda foi agendado automaticamente.",
+  );
 }
 
 export async function addAppointmentAction(_prev: FormState, form: FormData) {
+  const now = new Date();
   return quickAction(
     form,
     ["date", "time", "serviceType"],
-    appointmentForm,
+    appointmentFormAt(todayInStore(now), formatTime(now)),
     (id, data) => withTransactionalDb((db) => addAppointment(db, id, data)),
     "Agendamento criado.",
   );
 }
 
+export async function addVehicleAction(_prev: FormState, form: FormData) {
+  return quickAction(
+    form,
+    ["vehicleModel", "vehiclePlate", "vehicleTire", "vehicleYear"],
+    newVehicleForm,
+    (id, data) => withTransactionalDb((db) => addVehicle(db, id, data)),
+    "Veículo cadastrado.",
+  );
+}
+
 // ---------- Botões de 1 toque (Hoje e ficha) ----------
+// Devolvem o resultado em vez de lançar erro: uma recusa (ex.: a ação já foi concluída em outra
+// aba) vira um aviso na tela, e não a página de erro.
+
+export type TapResult = { ok: true; message?: string } | { ok: false; message: string };
+
+async function tap(run: () => Promise<string | undefined | void>): Promise<TapResult> {
+  await requireSession();
+  try {
+    return { ok: true, message: (await run()) ?? undefined };
+  } catch (err) {
+    if (err instanceof CommandError) return { ok: false, message: err.message };
+    throw err;
+  }
+}
 
 export async function completeTaskAction(taskId: string) {
-  await requireSession();
-  const customerId = await withTransactionalDb((db) => setTaskStatus(db, taskId, "concluida"));
-  refresh(customerId);
+  return tap(async () => {
+    const r = await withTransactionalDb((db) => setTaskStatus(db, taskId, "concluida"));
+    refresh(r.customerId);
+    return r.note;
+  });
 }
 
 export async function reopenTaskAction(taskId: string) {
-  await requireSession();
-  const customerId = await withTransactionalDb((db) => setTaskStatus(db, taskId, "pendente"));
-  refresh(customerId);
+  return tap(async () => {
+    const r = await withTransactionalDb((db) => setTaskStatus(db, taskId, "pendente"));
+    refresh(r.customerId);
+  });
 }
 
 export async function snoozeTaskAction(taskId: string, when: "amanha" | "3dias" | string) {
-  await requireSession();
-  const today = todayInStore();
-  const due = when === "amanha" ? addDays(today, 1) : when === "3dias" ? addDays(today, 3) : when;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(due) || due < today) throw new Error("Data inválida");
-  const customerId = await withTransactionalDb((db) => snoozeTask(db, taskId, due));
-  refresh(customerId);
-  return due;
+  return tap(async () => {
+    const today = todayInStore();
+    const due = when === "amanha" ? addDays(today, 1) : when === "3dias" ? addDays(today, 3) : when;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(due) || due < today) {
+      throw new CommandError("Escolha hoje ou uma data futura para adiar.");
+    }
+    const customerId = await withTransactionalDb((db) => snoozeTask(db, taskId, due));
+    refresh(customerId);
+    return due;
+  });
 }
 
-export async function setQuoteStatusAction(quoteId: string, status: "aprovado" | "recusado") {
-  await requireSession();
-  const customerId = await withTransactionalDb((db) => setQuoteStatus(db, quoteId, status));
-  refresh(customerId);
+export async function setQuoteStatusAction(
+  quoteId: string,
+  status: "aprovado" | "recusado",
+  reason?: string,
+) {
+  return tap(async () => {
+    const why = reason?.trim().slice(0, 300) || undefined;
+    const customerId = await withTransactionalDb((db) => setQuoteStatus(db, quoteId, status, why));
+    refresh(customerId);
+  });
 }
 
 export async function confirmAppointmentAction(appointmentId: string) {
-  await requireSession();
-  const customerId = await withTransactionalDb((db) =>
-    setAppointmentStatus(db, appointmentId, "confirmado"),
-  );
-  refresh(customerId);
+  return tap(async () => {
+    const customerId = await withTransactionalDb((db) =>
+      setAppointmentStatus(db, appointmentId, "confirmado"),
+    );
+    refresh(customerId);
+  });
+}
+
+export async function cancelAppointmentAction(appointmentId: string) {
+  return tap(async () => {
+    const customerId = await withTransactionalDb((db) =>
+      setAppointmentStatus(db, appointmentId, "cancelado"),
+    );
+    refresh(customerId);
+  });
 }

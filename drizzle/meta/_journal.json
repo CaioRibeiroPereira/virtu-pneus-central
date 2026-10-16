@@ -50,6 +50,13 @@
       "when": 1792117950424,
       "tag": "0006_oficina_estoque_equipe",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792161263901,
+      "tag": "0007_revisao_data_passada",
+      "breakpoints": true
     }
   ]
 }

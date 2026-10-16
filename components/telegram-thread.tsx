@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { toast } from "sonner";
 import { Send } from "lucide-react";
 import { replyTelegramAction, type ReplyState } from "@/app/(app)/clientes/[id]/telegram-actions";
+import { useActionForm } from "./use-action-form";
 
 const AUTHOR: Record<string, string> = {
   cliente: "Cliente",
@@ -21,15 +22,21 @@ export function TelegramThread({
   chatId: string;
   messages: ThreadMessage[];
 }) {
-  const [state, action, pending] = useActionState<ReplyState, FormData>(replyTelegramAction, {});
-  const form = useRef<HTMLFormElement>(null);
+  // Se o envio falhar, o texto digitado continua na caixa (só limpa depois de enviar).
+  const {
+    state,
+    formAction,
+    pending,
+    formRef: form,
+    onSubmit,
+  } = useActionForm<ReplyState>(replyTelegramAction, {});
 
   useEffect(() => {
     if (state.ok) {
       toast.success("Mensagem enviada pelo Telegram");
       form.current?.reset();
     }
-  }, [state]);
+  }, [state, form]);
 
   return (
     <div className="card">
@@ -46,7 +53,13 @@ export function TelegramThread({
           ))}
         </ol>
       </div>
-      <form ref={form} action={action} className="field" style={{ margin: "14px 0 0" }}>
+      <form
+        ref={form}
+        action={formAction}
+        onSubmit={onSubmit}
+        className="field"
+        style={{ margin: "14px 0 0" }}
+      >
         <input type="hidden" name="chatId" value={chatId} />
         <label htmlFor={`tg-reply-${chatId}`}>Responder pelo Telegram</label>
         <textarea

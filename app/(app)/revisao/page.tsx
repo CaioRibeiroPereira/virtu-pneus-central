@@ -3,12 +3,8 @@ import Link from "next/link";
 import { CircleCheck } from "lucide-react";
 import { getDb } from "@/db";
 import { formatDateTime } from "@/lib/dates";
-import {
-  customerOptions,
-  fieldLabel,
-  listPendingReviews,
-  recentDecisions,
-} from "@/lib/review/queries";
+import { agentEventTitle } from "@/lib/labels";
+import { customerOptions, listPendingReviews, recentDecisions } from "@/lib/review/queries";
 import { ReviewCard } from "@/components/review-card";
 import { stockSuggestions } from "@/lib/review/stock-suggestion";
 
@@ -29,9 +25,6 @@ export default async function RevisaoPage() {
     recentDecisions(db),
   ]);
   const stock = await stockSuggestions(db, cards);
-  const labels = Object.fromEntries(
-    [...new Set(cards.flatMap((c) => Object.keys(c.data)))].map((k) => [k, fieldLabel(k)]),
-  );
 
   return (
     <>
@@ -59,7 +52,6 @@ export default async function RevisaoPage() {
               key={card.id}
               card={card}
               customers={customers}
-              fieldLabels={labels}
               stock={
                 stock.byReview[card.id]
                   ? { products: stock.products, suggestion: stock.byReview[card.id] }
@@ -79,7 +71,8 @@ export default async function RevisaoPage() {
             {decided.map((d) => (
               <li key={d.id} className="card">
                 <p>
-                  <strong>{STATUS_LABEL[d.status] ?? d.status}</strong> · {d.type}
+                  <strong>{STATUS_LABEL[d.status] ?? d.status}</strong> ·{" "}
+                  {agentEventTitle[d.type] ?? d.type}
                   {d.customerId && (
                     <>
                       {" "}

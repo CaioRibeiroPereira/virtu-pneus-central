@@ -35,7 +35,10 @@ export type ProductInput = {
   minQuantity: number;
 };
 
-export async function createProduct(db: Db, input: ProductInput & { quantity: number }) {
+export async function createProduct(
+  db: Db,
+  input: ProductInput & { quantity: number; active?: boolean },
+) {
   return db.transaction(async (tx) => {
     const [row] = await tx
       .insert(products)
@@ -46,6 +49,8 @@ export async function createProduct(db: Db, input: ProductInput & { quantity: nu
         price: input.price,
         minQuantity: input.minQuantity,
         quantity: input.quantity,
+        // O formulário tem "Ativo": cadastrar já inativo (ex.: produto que saiu de linha) vale.
+        active: input.active ?? true,
       })
       .returning({ id: products.id });
     if (input.quantity > 0) {

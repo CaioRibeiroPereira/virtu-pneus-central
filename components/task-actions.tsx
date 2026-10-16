@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Check, Clock, MessageCircle } from "lucide-react";
 import { completeTaskAction, reopenTaskAction, snoozeTaskAction } from "@/app/(app)/actions";
 import { formatDate } from "@/lib/dates";
+import { runTap } from "./run-tap";
 
 /**
  * Botões de 1 toque de uma próxima ação: WhatsApp, Concluir (com desfazer) e Adiar.
@@ -16,12 +17,15 @@ export function TaskActions({
   title,
   whatsappHref,
   customerName,
+  today,
   compact = false,
 }: {
   taskId: string;
   title: string;
   whatsappHref: string | null;
   customerName: string;
+  /** Dia da loja: a data escolhida para adiar não pode ser antes dele. */
+  today: string;
   compact?: boolean;
 }) {
   const [pending, startTransition] = useTransition();
@@ -29,20 +33,27 @@ export function TaskActions({
 
   const complete = () =>
     startTransition(async () => {
-      await completeTaskAction(taskId);
-      toast.success(`Concluído: ${title} (${customerName})`, {
-        duration: 5000,
-        action: {
-          label: "Desfazer",
-          onClick: () => startTransition(() => reopenTaskAction(taskId)),
+      const done = await runTap(() => completeTaskAction(taskId));
+      if (!done) return;
+      toast.success(
+        `Concluído: ${title} (${customerName})${done.message ? `. ${done.message}` : ""}`,
+        {
+          duration: 5000,
+          action: {
+            label: "Desfazer",
+            onClick: () =>
+              startTransition(async () => {
+                await runTap(() => reopenTaskAction(taskId));
+              }),
+          },
         },
-      });
+      );
     });
 
   const snooze = (when: string) =>
     startTransition(async () => {
-      const due = await snoozeTaskAction(taskId, when);
-      toast.success(`Adiado para ${formatDate(due)}: ${customerName}`);
+      const done = await runTap(() => snoozeTaskAction(taskId, when));
+      if (done?.message) toast.success(`Adiado para ${formatDate(done.message)}: ${customerName}`);
     });
 
   return (
@@ -96,6 +107,7 @@ export function TaskActions({
                 id={`snooze-${taskId}`}
                 type="date"
                 value={customDate}
+                min={today}
                 onChange={(e) => setCustomDate(e.target.value)}
                 required
                 style={{ flex: 1 }}

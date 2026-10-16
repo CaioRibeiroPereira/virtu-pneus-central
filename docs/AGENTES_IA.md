@@ -56,8 +56,8 @@ tipos TypeScript e o JSON Schema pedido à IA saem do mesmo zod).
 | `vehicle.identified` | cria/atualiza veículo pela placa | baixo |
 | `interaction.logged` | registra o atendimento na linha do tempo | baixo |
 | `quote.created` | cria orçamento (dispara R1, follow-up em 3 dias) | baixo |
-| `task.suggested` | cria ação na tela Hoje | baixo |
-| `appointment.requested` | cria agendamento (dispara R4, confirmar na véspera) | baixo |
+| `task.suggested` | cria ação na tela Hoje (prazo no passado vira hoje — D60) | baixo |
+| `appointment.requested` | cria agendamento (dispara R4, confirmar na véspera); **dia que já passou vai para a Revisão** (`data_passada`, D60) | baixo |
 | `quote.status_changed` | aprova/recusa orçamento | **alto: sempre revisão** |
 | `service.completed` | registra serviço (dispara R2 e R3); na Revisão, o sistema **sugere a baixa do estoque** pela medida e quantidade da conversa ou do orçamento, e o gestor confirma (D59) | **alto: sempre revisão** |
 
@@ -66,7 +66,7 @@ tipos TypeScript e o JSON Schema pedido à IA saem do mesmo zod).
 | HTTP | Corpo | Quando |
 |---|---|---|
 | 201 | `{"status":"applied","event_id":…,"customer_id":…,"applied":[…]}` | confiança ≥ `AGENT_AUTO_APPLY_THRESHOLD` (0,85), baixo risco, cliente único ou novo |
-| 202 | `{"status":"queued_for_review","review_id":…,"reason":…}` | `baixa_confianca`, `alto_impacto`, `cliente_nao_encontrado`, `varios_clientes`, `conflito_edicao_humana` |
+| 202 | `{"status":"queued_for_review","review_id":…,"reason":…}` | `baixa_confianca`, `alto_impacto`, `cliente_nao_encontrado`, `varios_clientes`, `conflito_edicao_humana`, `data_passada` |
 | 200 | `{"status":"duplicate","event_id":…}` | o mesmo `event_id` já chegou (reenvio do n8n não duplica nada) |
 | 401 / 413 / 415 / 422 | `{"error":…}` | token, tamanho (64 KB), tipo de conteúdo, contrato |
 
@@ -78,6 +78,10 @@ tipos TypeScript e o JSON Schema pedido à IA saem do mesmo zod).
   desconhecido com mensagem vaga vai para a Revisão.
 - Tudo que o agente grava fica no `audit_log` com o evento de origem: a ficha mostra "veio do Vito"
   com a evidência.
+- Orçamento, agendamento e serviço vindos do Vito avançam a etapa do cliente pela mesma regra da
+  ficha (só para frente; D60).
+- Na Revisão, "Editar e aprovar" usa o campo certo para cada dado (data, dia e horário da loja, valor
+  em reais, lista de opções) e confere as mesmas regras de data da ficha antes de aplicar.
 
 ## Canal Telegram: o Vito conversando com o cliente (D57)
 

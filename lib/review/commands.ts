@@ -4,9 +4,10 @@
 import { and, eq } from "drizzle-orm";
 import type { Db } from "@/db";
 import { agentEvents, auditLog, customers, reviewItems } from "@/db/schema";
-import { applyAgentEvent } from "@/lib/agent/apply";
+import { applyAgentEvent, resolveQuoteForStatusChange } from "@/lib/agent/apply";
 import { agentEventSchema, type AgentEvent } from "@/lib/agent/schema";
-import { todayInStore } from "@/lib/dates";
+import { storeDateOf, todayInStore } from "@/lib/dates";
+import { editLabel } from "./fields";
 import { normalizePhone } from "@/lib/phone";
 import { syncAutoTasks } from "@/lib/rules/auto-tasks";
 import { consumeForService, StockError, type ServiceItem } from "@/lib/oficina/inventory";
@@ -28,9 +29,21 @@ export type DecisionResult =
   | {
       ok: false;
       reason:
-        "not_found" | "already_decided" | "needs_customer" | "invalid_edit" | "insufficient_stock";
+        | "not_found"
+        | "already_decided"
+        | "needs_customer"
+        | "invalid_edit"
+        | "insufficient_stock"
+        | "quote_not_found";
       message: string;
     };
+
+/** Recusa depois de já ter gravado algo (ex.: cliente novo): lançar desfaz a transação inteira. */
+class Refusal extends Error {
+  constructor(readonly result: Extract<DecisionResult, { ok: false }>) {
+    super(result.message);
+  }
+}
 
 async function loadPending(tx: Db, reviewId: string) {
   const [row] = await tx
@@ -55,6 +68,7 @@ export async function approveReview(
     if (error instanceof StockError) {
       return { ok: false, reason: "insufficient_stock", message: error.message };
     }
+    if (error instanceof Refusal) return error.result;
     throw error;
   }
 }
@@ -90,12 +104,38 @@ async function approveInTransaction(
     };
     const parsed = agentEventSchema.safeParse(candidate);
     if (!parsed.success) {
+      // Em português e com o nome do campo da tela (o zod fala inglês e usa o nome técnico).
+      const fields = [
+        ...new Set(
+          parsed.error.issues.map((i) => editLabel(original.type, String(i.path[1] ?? ""))),
+        ),
+      ];
       return {
         ok: false,
         reason: "invalid_edit",
-        message: parsed.error.issues
-          .map((i) => `${i.path.slice(1).join(".")}: ${i.message}`)
-          .join("; "),
+        message: `Confira: ${fields.join(", ")}.`,
+      };
+    }
+    // As mesmas regras de data que valem quando o gestor registra pela ficha.
+    const data = parsed.data;
+    if (
+      data.type === "appointment.requested" &&
+      storeDateOf(new Date(data.data.scheduled_at)) < today
+    ) {
+      return {
+        ok: false,
+        reason: "invalid_edit",
+        message: "O dia do agendamento já passou: corrija em “Editar e aprovar” ou rejeite.",
+      };
+    }
+    if (
+      data.type === "service.completed" &&
+      storeDateOf(new Date(data.data.performed_at)) > today
+    ) {
+      return {
+        ok: false,
+        reason: "invalid_edit",
+        message: "Serviço feito não pode ter data futura: corrija em “Editar e aprovar”.",
       };
     }
 
@@ -130,6 +170,19 @@ async function approveInTransaction(
         message: "Escolha um cliente existente ou crie um novo para aprovar.",
       };
     }
+    // Aprovação/recusa de orçamento sem orçamento em aberto (já decidido na ficha, por exemplo):
+    // avisa em vez de quebrar a tela.
+    if (
+      data.type === "quote.status_changed" &&
+      !(await resolveQuoteForStatusChange(tx, customerId, data.data.quote_id))
+    ) {
+      throw new Refusal({
+        ok: false,
+        reason: "quote_not_found",
+        message:
+          "Este cliente não tem orçamento aguardando resposta (talvez já tenha sido decidido na ficha). Rejeite a sugestão ou registre o orçamento antes.",
+      });
+    }
 
     const applied = await applyAgentEvent(tx, parsed.data, {
       customerId,
@@ -137,6 +190,7 @@ async function approveInTransaction(
       actor: "gestor",
       // Em conflito com edição humana, aprovar significa aceitar o valor do agente.
       overwrite: row.review.reason === "conflito_edicao_humana",
+      today,
     });
     // "Serviço feito" vindo do Vito: o gestor confirmou quais itens saíram do estoque.
     const stockItems = parsed.data.type === "service.completed" ? (options.stockItems ?? []) : [];

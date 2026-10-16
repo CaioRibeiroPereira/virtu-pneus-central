@@ -18,3 +18,8 @@ export function whatsappMessage(taskType: string, customerName: string): string 
       return `Olá, ${nome}! Aqui é da Virtù Pneus.`;
   }
 }
+
+/** Agenda de hoje, horário já confirmado: lembrete em vez de pedir confirmação de novo. */
+export function appointmentReminder(customerName: string, time: string): string {
+  return `Olá, ${firstName(customerName)}! Aqui é da Virtù Pneus. Te esperamos hoje às ${time}. Até já!`;
+}

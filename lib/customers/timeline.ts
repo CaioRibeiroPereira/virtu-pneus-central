@@ -130,7 +130,8 @@ export function buildTimeline(input: TimelineInput): TimelineItem[] {
     });
   }
   for (const a of input.appointments) {
-    const upcoming = a.scheduledAt > input.now;
+    // Cancelado continua no histórico, mas não como "Agendado … em breve".
+    const upcoming = a.scheduledAt > input.now && ["agendado", "confirmado"].includes(a.status);
     items.push({
       key: `a-${a.id}`,
       kind: "agendamento",

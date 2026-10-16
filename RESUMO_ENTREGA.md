@@ -22,7 +22,7 @@ servia para dados reais. O diagnóstico completo está em [`docs/DIAGNOSTICO.md`
 | Datas | histórico em UTC; demo "congelada" em 24/09 | fuso de São Paulo em todo lugar; seed relativo a hoje + "Reiniciar demonstração" |
 | Acessibilidade | Lighthouse 89–95; **597** falhas de contraste no axe | Lighthouse **100** em todas as telas; axe **sem violações** em 375 e 1280 px, nos temas **claro e escuro**; reflow em 320 px |
 | Celular | tabela e kanban rolando de lado; menu que não fecha | barra inferior, cards, alvos de 44 px |
-| Testes | nenhum | 152 de unidade/integração, 7 E2E com axe, banco de testes da IA |
+| Testes | nenhum | 279 de unidade/integração, 13 E2E com axe, banco de testes da IA, teste exploratório como usuário |
 
 Prints: antes em [`docs/diagnostico-screenshots/`](docs/diagnostico-screenshots/), depois em
 [`docs/screenshots/depois/`](docs/screenshots/depois/) (375 e 1280 px de cada tela).
@@ -31,9 +31,10 @@ Prints: antes em [`docs/diagnostico-screenshots/`](docs/diagnostico-screenshots/
 
 | Tipo | Ferramenta | Resultado |
 |---|---|---|
-| Unidade + integração | Vitest; Postgres em memória (PGlite) com as **migrações reais** | **152 passando**: datas/fuso, telefone, busca, auth, regras R1–R4, endpoint (401/413/415/422, idempotência, matching, decisão, conflito com edição humana, eventos simultâneos), revisão, extração da IA |
-| E2E | Playwright (Chrome) | **12 passando** localmente e **contra a produção**: concluir ação → linha do tempo; simulador → aplica, reenvio ignorado, alto impacto → revisão → aprovar → ficha |
-| Acessibilidade automática | axe-core (WCAG 2.0/2.1/2.2 A e AA) | **0 violações** em login, Hoje, Clientes, Ficha, Novo/Editar cliente, Mais, Revisão e Simulador, em 375 e 1280 px, nos temas claro e escuro |
+| Unidade + integração | Vitest; Postgres em memória (PGlite) com as **migrações reais** | **279 passando**: datas/fuso, telefone, busca, auth, regras R1–R4, endpoint (401/413/415/422, idempotência, matching, decisão, conflito com edição humana, eventos simultâneos), revisão, extração da IA, estoque, Telegram, formulários e fluxos do teste como usuário |
+| E2E | Playwright (Chrome) | **13 passando** localmente e **contra a produção**: concluir ação → linha do tempo; simulador → aplica, reenvio ignorado, alto impacto → revisão → aprovar → ficha; serviço feito pelo Vito → baixa de estoque |
+| Teste como usuário | Playwright num build de produção, tela por tela, com erros de propósito | ~25 achados, todos corrigidos com teste — ex.: "1.840" virava R$ 1,84; formulário perdia as escolhas após um erro; data passada derrubava a página ([AUDITORIA, etapa 15](docs/AUDITORIA.md), D60) |
+| Acessibilidade automática | axe-core (WCAG 2.0/2.1/2.2 A e AA) | **0 violações** em login, Hoje, Clientes, Ficha, Novo/Editar cliente, Mais, Revisão, Simulador, Conversas, Estoque, produto, Serviços, Equipe e funcionário, em 375 e 1280 px, nos temas claro e escuro; também na Revisão em modo de correção e nas páginas de "não encontrado" |
 | Lighthouse 13.5 (produção) | ver tabela abaixo | Acessibilidade 100 em todas |
 | IA | `scripts/avaliar-extracao.ts` | ver [`docs/AVALIACAO_IA.md`](docs/AVALIACAO_IA.md) e a seção abaixo |
 | Navegação guiada | Playwright na produção | roteiro da demo percorrido em 375 e 1280 px, com prints de cada tela |
@@ -93,7 +94,7 @@ Detalhes em [`docs/AGENTES_IA.md`](docs/AGENTES_IA.md). Resumo:
 
 ## Principais decisões
 
-Todas em [`DECISOES.md`](DECISOES.md) (D1–D59), com contexto, opções e motivo. As que mais pesaram:
+Todas em [`DECISOES.md`](DECISOES.md) (D1–D60), com contexto, opções e motivo. As que mais pesaram:
 
 - **D2 — Next.js + Vercel + Neon + Drizzle:** o vinext do original é beta e o limite de 10 ms de
   CPU do Workers gratuito é risco para renderizar no servidor; Next usa a mesma estrutura `app/`,
@@ -108,6 +109,9 @@ Todas em [`DECISOES.md`](DECISOES.md) (D1–D59), com contexto, opções e motiv
 - **D38 — URL confiável no simulador:** evita SSRF via cabeçalho `Host`.
 - **D42 — Dois provedores de IA com seletor:** qualidade (Gemini) × privacidade/LGPD (Ollama),
   comparados com números.
+- **D60 — O que mudou depois de usar o sistema como usuário:** a etapa do funil acompanha os fatos,
+  "Confirmar agendamento" confirma, datas conferidas no servidor, valor em reais como se escreve no
+  Brasil e formulários que não perdem o que foi escolhido.
 
 ## Limitações e próximos passos
 
@@ -120,5 +124,7 @@ Todas em [`DECISOES.md`](DECISOES.md) (D1–D59), com contexto, opções e motiv
   branch do Neon só para testes.
 - **CSP com `'unsafe-inline'`** (D33). Próximo passo: nonce por requisição.
 - **Sem exclusão de cliente (LGPD)** nem PWA: itens T3/T4 da lista de extras, não feitos por prazo.
+- **Registros não são editados nem excluídos** (orçamento, serviço, atendimento): corrige-se
+  registrando de novo, e a auditoria guarda tudo. Próximo passo: edição com auditoria.
 - **Acessibilidade:** os testes automáticos (axe, Lighthouse) pegam só parte dos problemas. Falta
   um teste manual completo com teclado e leitor de tela antes de dizer "AA".

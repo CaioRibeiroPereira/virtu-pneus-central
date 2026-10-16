@@ -91,7 +91,7 @@ export function computeAutoTasks(
         autoRule: "R3",
         type: "retorno_comercial",
         title: "Oferecer rodízio e alinhamento",
-        reason: `${serviceTypeLabel[s.type] ?? "Serviço"} feito em ${formatDate(day)}: hora de revisar`,
+        reason: `${serviceTypeLabel[s.type] ?? "Serviço"} em ${formatDate(day)}: hora de revisar`,
         dueDate: addDays(day, COMMERCIAL_RETURN_DAYS),
         serviceId: s.id,
       });
@@ -102,13 +102,15 @@ export function computeAutoTasks(
     const day = storeDateOf(a.scheduledAt);
     // Só agendamentos futuros (ou de hoje) ainda não confirmados.
     if (a.status !== "agendado" || day < today) continue;
+    // Vence na véspera; marcado para hoje (ou na véspera já passada), vence hoje: não nasce atrasada.
+    const eve = addDays(day, -1);
     desired.push({
       customerId: a.customerId,
       autoRule: "R4",
       type: "confirmar_agendamento",
       title: "Confirmar agendamento",
       reason: `Agendamento de ${(serviceTypeLabel[a.serviceType] ?? "serviço").toLowerCase()} em ${formatDate(day)} às ${formatTime(a.scheduledAt)}`,
-      dueDate: addDays(day, -1),
+      dueDate: eve < today ? today : eve,
       appointmentId: a.id,
     });
   }
@@ -116,18 +118,24 @@ export function computeAutoTasks(
   return desired;
 }
 
-/** Tarefas automáticas pendentes cuja condição deixou de valer (§7.1: cancelar). */
+/**
+ * Tarefas automáticas pendentes cuja condição deixou de valer (§7.1: cancelar).
+ * R1: o orçamento não está mais "enviado". R4: o agendamento foi confirmado/cancelado ou o dia
+ * dele já passou (não há mais o que confirmar).
+ */
 export function staleAutoTasks(
   pending: PendingAutoTask[],
   facts: { quotes: QuoteFact[]; appointments: AppointmentFact[] },
+  today: DateOnly,
 ): string[] {
   const quoteStatus = new Map(facts.quotes.map((q) => [q.id, q.status]));
-  const appointmentStatus = new Map(facts.appointments.map((a) => [a.id, a.status]));
+  const appointmentById = new Map(facts.appointments.map((a) => [a.id, a]));
   return pending
     .filter((t) => {
       if (t.autoRule === "R1") return !t.quoteId || quoteStatus.get(t.quoteId) !== "enviado";
       if (t.autoRule === "R4") {
-        return !t.appointmentId || appointmentStatus.get(t.appointmentId) !== "agendado";
+        const a = t.appointmentId ? appointmentById.get(t.appointmentId) : undefined;
+        return !a || a.status !== "agendado" || storeDateOf(a.scheduledAt) < today;
       }
       return false;
     })
@@ -212,6 +220,7 @@ export async function syncAutoTasks(
     const staleIds = staleAutoTasks(
       pendingRows.map((p) => ({ ...p, autoRule: p.autoRule ?? "" })),
       facts,
+      today,
     );
     let cancelled: { id: string }[] = [];
     if (staleIds.length) {

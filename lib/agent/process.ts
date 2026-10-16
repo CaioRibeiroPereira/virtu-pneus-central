@@ -5,7 +5,7 @@
 import { eq } from "drizzle-orm";
 import type { Db } from "@/db";
 import { agentEvents, auditLog, customers, reviewItems } from "@/db/schema";
-import { todayInStore, type DateOnly } from "@/lib/dates";
+import { storeDateOf, todayInStore, type DateOnly } from "@/lib/dates";
 import { normalizePhone } from "@/lib/phone";
 import { syncAutoTasks } from "@/lib/rules/auto-tasks";
 import {
@@ -21,7 +21,8 @@ export type ReviewReason =
   | "cliente_nao_encontrado"
   | "varios_clientes"
   | "conflito_edicao_humana"
-  | "alto_impacto";
+  | "alto_impacto"
+  | "data_passada";
 
 export type ProcessOutcome =
   | { status: "applied"; eventId: string; applied: AppliedEntity[]; customerId: string }
@@ -152,6 +153,14 @@ export async function processAgentEvent(
       return sendToReview("alto_impacto", customer.id, target);
     }
     if (!confident) return sendToReview("baixa_confianca", customer.id);
+    // Agendamento para um dia que já passou não entra sozinho: a IA pode ter errado a data
+    // ("sábado" virou o sábado passado) ou a conversa é antiga. O gestor corrige na Revisão.
+    if (
+      event.type === "appointment.requested" &&
+      storeDateOf(new Date(event.data.scheduled_at)) < today
+    ) {
+      return sendToReview("data_passada", customer.id);
+    }
     // Campos que o agente propôs mudar mas que já estavam preenchidos (não pelo gestor):
     // não são sobrescritos (o agente só preenche vazios), mas ficam registrados no resultado.
     let ignored: string[] = [];
@@ -171,6 +180,7 @@ export async function processAgentEvent(
       customerId: customer.id,
       agentEventId: stored.id,
       actor: "agente",
+      today,
     });
     await tx
       .update(agentEvents)

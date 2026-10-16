@@ -1,16 +1,22 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import { login, type LoginState } from "./actions";
 
 export function LoginForm({ next }: { next: string }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(login, {});
+  // Senha errada: o campo é limpo (de propósito) e o foco volta para ele.
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (state.error) input.current?.focus();
+  }, [state]);
   return (
     <form action={action} noValidate>
       <input type="hidden" name="next" value={next} />
       <label className="field" htmlFor="password">
         Senha do gestor
         <input
+          ref={input}
           id="password"
           name="password"
           type="password"

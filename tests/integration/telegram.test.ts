@@ -2,7 +2,7 @@
 // o que seria enviado: aviso inicial, idempotência, telefone próprio × encaminhado, agendamento
 // vindo do banco, nada inventado para preço, aviso ao dono e lote para a extração.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { Db } from "@/db";
 import { appointments, customers, telegramChats, telegramMessages } from "@/db/schema";
 import type { SendOptions, TelegramUpdate } from "@/lib/telegram/api";
@@ -168,6 +168,22 @@ describe("lote para a extração (n8n)", () => {
     // Depois da confirmação, o lote não volta.
     expect(await markExtracted(db, conv.chat_id, new Date(conv.ate))).toBeGreaterThan(0);
     expect(await readyConversations(db, new Date(last + IDLE_MS + 1000))).toEqual([]);
+  });
+
+  it("lote que termina numa mensagem do cliente (Vito em silêncio) também é confirmado", async () => {
+    // O Postgres guarda microssegundos; o `ate` do JSON, milissegundos. Antes, a última mensagem
+    // (…07.807180) ficava fora de "≤ …07.807" e o n8n extraía o mesmo lote a cada minuto.
+    await db.insert(telegramMessages).values({
+      chatId: String(CHAT),
+      author: "cliente",
+      text: "oi",
+      createdAt: sql`date_trunc('second', now()) + interval '10.807180 seconds'`,
+    });
+    const later = new Date(Date.now() + 10_000 + IDLE_MS + 1000);
+    const [conv] = await readyConversations(db, later);
+    expect(conv.messages.at(-1)).toEqual({ from: "cliente", text: "oi" });
+    expect(await markExtracted(db, conv.chat_id, new Date(conv.ate))).toBe(1);
+    expect(await readyConversations(db, later)).toEqual([]);
   });
 });
 

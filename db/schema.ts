@@ -86,6 +86,8 @@ export const reviewReasonEnum = pgEnum("review_reason", [
   "varios_clientes",
   "conflito_edicao_humana",
   "alto_impacto",
+  /** Agendamento para um dia que já passou: a IA errou a data ou a conversa é antiga (D60). */
+  "data_passada",
 ]);
 export const reviewStatusEnum = pgEnum("review_status", [
   "pendente",

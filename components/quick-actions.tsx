@@ -1,20 +1,23 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import {
   addAppointmentAction,
+  addInteractionAction,
   addQuoteAction,
   addServiceAction,
   addTaskAction,
+  addVehicleAction,
   type FormState,
 } from "@/app/(app)/actions";
-import { options, serviceTypeLabel, taskTypeLabel } from "@/lib/labels";
-import { SelectField, TextField } from "./field";
+import { channelLabel, options, serviceTypeLabel, taskTypeLabel } from "@/lib/labels";
+import { SelectField, TextAreaField, TextField } from "./field";
+import { useActionForm } from "./use-action-form";
 
 type Action = (prev: FormState, form: FormData) => Promise<FormState>;
 
-/** Um formulário recolhível (<details>) que fecha e avisa quando a ação dá certo. */
+/** Um formulário recolhível (<details>) que fecha, limpa e avisa quando a ação dá certo. */
 function QuickForm({
   title,
   action,
@@ -28,23 +31,30 @@ function QuickForm({
   submitLabel: string;
   children: (errors: Record<string, string>, values: Record<string, string>) => React.ReactNode;
 }) {
-  const [state, formAction, pending] = useActionState<FormState, FormData>(action, {});
+  const { state, formAction, pending, formRef, onSubmit } = useActionForm<FormState>(action, {});
   const details = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     if (state.ok) {
       toast.success(state.message ?? "Salvo.");
+      formRef.current?.reset();
       if (details.current) details.current.open = false;
     }
-  }, [state]);
+  }, [state, formRef]);
 
   return (
     <details ref={details} className="card disclosure">
       <summary>{title}</summary>
-      <form action={formAction} noValidate style={{ marginTop: 12 }}>
+      <form
+        ref={formRef}
+        action={formAction}
+        onSubmit={onSubmit}
+        noValidate
+        style={{ marginTop: 12 }}
+      >
         <input type="hidden" name="customerId" value={customerId} />
         {state.errors && (
           <p className="alert" role="alert" style={{ marginBottom: 12 }}>
-            Confira os campos destacados.
+            {state.errors._form ?? "Confira os campos destacados."}
           </p>
         )}
         {children(state.errors ?? {}, state.values ?? {})}
@@ -121,6 +131,36 @@ export function QuickActions({
   ];
   return (
     <div className="stack">
+      <QuickForm
+        title="Registrar atendimento"
+        action={addInteractionAction}
+        customerId={customerId}
+        submitLabel="Registrar atendimento"
+      >
+        {(e, v) => (
+          <div className="form-grid">
+            <SelectField
+              idPrefix={p("i")}
+              name="channel"
+              label="Como foi"
+              options={options(channelLabel)}
+              defaultValue={v.channel ?? "telefone"}
+              error={e.channel}
+            />
+            <TextAreaField
+              idPrefix={p("i")}
+              name="summary"
+              label="O que foi conversado"
+              required
+              rows={3}
+              defaultValue={v.summary}
+              error={e.summary}
+              hint="Ex.: ligou perguntando preço de 2 pneus aro 15"
+            />
+          </div>
+        )}
+      </QuickForm>
+
       <QuickForm
         title="Nova próxima ação"
         action={addTaskAction}
@@ -374,6 +414,49 @@ export function QuickActions({
               options={options(serviceTypeLabel)}
               defaultValue={v.serviceType ?? "alinhamento"}
               error={e.serviceType}
+            />
+          </div>
+        )}
+      </QuickForm>
+
+      <QuickForm
+        title="Novo veículo"
+        action={addVehicleAction}
+        customerId={customerId}
+        submitLabel="Cadastrar veículo"
+      >
+        {(e, v) => (
+          <div className="form-grid">
+            <TextField
+              idPrefix={p("v")}
+              name="vehicleModel"
+              label="Modelo"
+              hint="Ex.: Onix 2020"
+              defaultValue={v.vehicleModel}
+              error={e.vehicleModel}
+            />
+            <TextField
+              idPrefix={p("v")}
+              name="vehiclePlate"
+              label="Placa"
+              defaultValue={v.vehiclePlate}
+              error={e.vehiclePlate}
+            />
+            <TextField
+              idPrefix={p("v")}
+              name="vehicleTire"
+              label="Medida do pneu"
+              hint="Ex.: 185/65 R15"
+              defaultValue={v.vehicleTire}
+              error={e.vehicleTire}
+            />
+            <TextField
+              idPrefix={p("v")}
+              name="vehicleYear"
+              label="Ano"
+              inputMode="numeric"
+              defaultValue={v.vehicleYear}
+              error={e.vehicleYear}
             />
           </div>
         )}

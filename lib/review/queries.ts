@@ -3,13 +3,16 @@ import { asc, desc, eq, inArray, ne } from "drizzle-orm";
 import type { Db } from "@/db";
 import { agentEvents, customers, quotes, reviewItems } from "@/db/schema";
 import type { AgentEvent } from "@/lib/agent/schema";
+import { formatDate, formatDateTime } from "@/lib/dates";
 import {
   channelLabel,
   formatMoney,
   originLabel,
   quoteStatusLabel,
   serviceTypeLabel,
+  taskTypeLabel,
 } from "@/lib/labels";
+import { normalizePhone } from "@/lib/phone";
 
 export type Comparison = { field: string; current: string; proposed: string };
 
@@ -41,11 +44,11 @@ const FIELD_LABEL: Record<string, string> = {
   summary: "Resumo",
   type: "Tipo",
   performed_at: "Data do serviço",
-  scheduled_at: "Data e hora",
+  scheduled_at: "Dia e horário",
   service_type: "Serviço",
   title: "Título",
   reason: "Motivo",
-  due_date: "Vencimento",
+  due_date: "Quando",
   plate: "Placa",
   model: "Modelo",
   tire_size: "Medida",
@@ -58,15 +61,24 @@ const FIELD_LABEL: Record<string, string> = {
 
 export const fieldLabel = (f: string) => FIELD_LABEL[f] ?? f;
 
-function show(field: string, value: unknown): string {
+/** Valor como o dono lê: dinheiro, datas no relógio da loja e rótulos em vez de códigos. */
+function show(field: string, value: unknown, eventType = ""): string {
   if (value === null || value === undefined || value === "") return "—";
+  const text = String(value);
   if (field === "total" && typeof value === "number") return formatMoney(value);
-  if (field === "origin") return originLabel[String(value)] ?? String(value);
-  if (field === "status") return quoteStatusLabel[String(value)] ?? String(value);
-  if (field === "channel") return channelLabel[String(value)] ?? String(value);
-  if (field === "service_type" || field === "type")
-    return serviceTypeLabel[String(value)] ?? String(value);
-  return String(value);
+  if (field === "origin") return originLabel[text] ?? text;
+  if (field === "status") return quoteStatusLabel[text] ?? text;
+  if (field === "channel") return channelLabel[text] ?? text;
+  if (field === "type" && eventType === "task.suggested") return taskTypeLabel[text] ?? text;
+  if (field === "service_type" || field === "type") return serviceTypeLabel[text] ?? text;
+  if (field === "scheduled_at" || field === "performed_at") {
+    const at = new Date(text);
+    return Number.isNaN(at.getTime()) ? text : formatDateTime(at);
+  }
+  if ((field === "due_date" || field === "valid_until") && /^\d{4}-\d{2}-\d{2}$/.test(text)) {
+    return formatDate(text);
+  }
+  return text;
 }
 
 export async function listPendingReviews(db: Db): Promise<ReviewCard[]> {
@@ -127,11 +139,13 @@ export async function listPendingReviews(db: Db): Promise<ReviewCard[]> {
       ];
     } else {
       // Tipos que criam registro novo: não há "dado atual".
-      comparison = Object.entries(data).map(([f, v]) => ({
-        field: fieldLabel(f),
-        current: "— (novo registro)",
-        proposed: show(f, v),
-      }));
+      comparison = Object.entries(data)
+        .filter(([f]) => f !== "quote_id")
+        .map(([f, v]) => ({
+          field: fieldLabel(f),
+          current: "— (novo registro)",
+          proposed: show(f, v, payload.type),
+        }));
     }
 
     return {
@@ -146,7 +160,7 @@ export async function listPendingReviews(db: Db): Promise<ReviewCard[]> {
         agentName: event.agentName,
       },
       data,
-      phone: payload.customer.phone,
+      phone: normalizePhone(payload.customer.phone)?.display ?? payload.customer.phone,
       customer: customer ? { id: customer.id, name: customer.name } : null,
       comparison,
     };

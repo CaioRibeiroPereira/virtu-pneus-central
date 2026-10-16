@@ -15,7 +15,7 @@ import {
 import { withTransactionalDb } from "@/db";
 import { formatDate, formatLongDate, todayInStore } from "@/lib/dates";
 import { taskTypeLabel } from "@/lib/labels";
-import { whatsappMessage } from "@/lib/messages";
+import { appointmentReminder, whatsappMessage } from "@/lib/messages";
 import { whatsappLink } from "@/lib/phone";
 import { loadTodayExtras } from "@/lib/rules/today-extras";
 import { conversationsNeedingReply } from "@/lib/telegram/thread";
@@ -59,7 +59,7 @@ function greeting(now = new Date()) {
   return hour < 12 ? "Bom dia!" : hour < 18 ? "Boa tarde!" : "Boa noite!";
 }
 
-function TaskCard({ task }: { task: Task }) {
+function TaskCard({ task, today }: { task: Task; today: string }) {
   const overdue = task.daysOverdue > 0;
   return (
     <li className="card">
@@ -92,6 +92,7 @@ function TaskCard({ task }: { task: Task }) {
         taskId={task.id}
         title={task.title}
         customerName={task.customerName}
+        today={today}
         whatsappHref={
           task.phoneE164
             ? whatsappLink(task.phoneE164, whatsappMessage(task.type, task.customerName))
@@ -133,7 +134,9 @@ function AgendaPanel({ items }: { items: Appointment[] }) {
               className="btn btn-primary"
               href={whatsappLink(
                 a.phoneE164,
-                whatsappMessage("confirmar_agendamento", a.customerName),
+                a.status === "agendado"
+                  ? whatsappMessage("confirmar_agendamento", a.customerName)
+                  : appointmentReminder(a.customerName, a.time),
               )}
               target="_blank"
               rel="noopener noreferrer"
@@ -169,7 +172,9 @@ export default async function HojePage({
   const appointments = panel.dueToday.filter((i): i is Appointment => i.kind === "appointment");
   const todayTasks = panel.dueToday.filter((i): i is Task => i.kind === "task");
   const allTasks = [...panel.overdue, ...todayTasks];
-  const pending = allTasks.length + appointments.length;
+  // Contatos = próximas ações. Os horários da agenda ficam no painel ao lado: não são "contatos
+  // para fazer" e não têm como ser concluídos aqui (contá-los travava o anel abaixo de 100%).
+  const pending = allTasks.length;
   const done = extras.doneToday;
   const progress = done + pending ? Math.round((done / (done + pending)) * 100) : 100;
 
@@ -198,7 +203,9 @@ export default async function HojePage({
               {pending === 0
                 ? "Nada pendente para hoje."
                 : `${pending} ${pending === 1 ? "contato" : "contatos"} para fazer${
-                    panel.overdue.length ? ` — ${panel.overdue.length} já atrasados` : ""
+                    panel.overdue.length
+                      ? ` — ${panel.overdue.length} já ${panel.overdue.length === 1 ? "atrasado" : "atrasados"}`
+                      : ""
                   }.`}
             </p>
           </div>
@@ -238,7 +245,7 @@ export default async function HojePage({
             </h2>
             <ul className="stack">
               {overdue.map((t) => (
-                <TaskCard key={t.id} task={t} />
+                <TaskCard key={t.id} task={t} today={today} />
               ))}
             </ul>
           </section>
@@ -252,7 +259,7 @@ export default async function HojePage({
             </h2>
             <ul className="stack">
               {forToday.map((t) => (
-                <TaskCard key={t.id} task={t} />
+                <TaskCard key={t.id} task={t} today={today} />
               ))}
             </ul>
           </section>
@@ -264,7 +271,7 @@ export default async function HojePage({
           </p>
         )}
 
-        {panel.allClear && (
+        {allTasks.length === 0 && (
           <section className="section card" style={{ textAlign: "center", padding: 32 }}>
             <CircleCheck aria-hidden="true" size={40} color="var(--accent-text)" />
             <h2 style={{ marginTop: 8 }}>Tudo em dia!</h2>

@@ -7,6 +7,7 @@ import { agentEvents, reviewItems } from "@/db/schema";
 import { requireSession } from "@/lib/auth/session";
 import { parseServiceItems } from "@/lib/customers/input";
 import { approveReview, rejectReview } from "@/lib/review/commands";
+import { readEdits } from "@/lib/review/fields";
 
 export type ReviewFormState = { ok?: boolean; message?: string; error?: string };
 
@@ -17,27 +18,15 @@ function refresh(customerId?: string | null) {
   if (customerId) revalidatePath(`/clientes/${customerId}`);
 }
 
-/** Valores editados chegam como "data.<campo>"; só entram os que mudaram. */
+/** Valores corrigidos ("Editar e aprovar"): só entram os que mudaram, no formato do contrato. */
 async function editedFields(reviewId: string, form: FormData) {
   const [row] = await getDb()
     .select({ payload: agentEvents.payload })
     .from(reviewItems)
     .innerJoin(agentEvents, eq(agentEvents.id, reviewItems.agentEventId))
     .where(eq(reviewItems.id, reviewId));
-  const original = ((row?.payload as { data?: Record<string, unknown> })?.data ?? {}) as Record<
-    string,
-    unknown
-  >;
-  const edited: Record<string, unknown> = {};
-  for (const [key, raw] of form.entries()) {
-    if (!key.startsWith("data.")) continue;
-    const field = key.slice(5);
-    const text = String(raw).trim();
-    const before = original[field];
-    const value = typeof before === "number" ? Number(text.replace(",", ".")) : text;
-    if (String(value) !== String(before ?? "")) edited[field] = value;
-  }
-  return edited;
+  const payload = (row?.payload ?? {}) as { type?: string; data?: Record<string, unknown> };
+  return readEdits(payload.type ?? "", payload.data ?? {}, form);
 }
 
 export async function approveReviewAction(
@@ -47,8 +36,10 @@ export async function approveReviewAction(
   await requireSession();
   const reviewId = String(form.get("reviewId") ?? "");
   const choice = String(form.get("customerChoice") ?? "");
+  const edits = form.get("mode") === "editar" ? await editedFields(reviewId, form) : null;
+  if (edits?.errors.length) return { error: `Confira: ${edits.errors.join(", ")}.` };
   const options = {
-    editedData: form.get("mode") === "editar" ? await editedFields(reviewId, form) : undefined,
+    editedData: edits?.edited,
     customerId: choice.startsWith("existing:") ? choice.slice(9) : undefined,
     createCustomerName:
       choice === "new" ? String(form.get("newCustomerName") ?? "").trim() || undefined : undefined,

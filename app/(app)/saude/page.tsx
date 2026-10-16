@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db";
 import { hasSession } from "@/lib/auth/session";
+import { formatDateTime } from "@/lib/dates";
 
 export const metadata: Metadata = { title: "Saúde do sistema | Grupo Virtù Pneus" };
 
@@ -19,6 +20,12 @@ const TABLES = [
   ["tasks", "Próximas ações"],
   ["agent_events", "Eventos de agentes"],
   ["review_items", "Fila de revisão"],
+  ["telegram_chats", "Conversas do Telegram"],
+  ["telegram_messages", "Mensagens do Telegram"],
+  ["products", "Produtos do estoque"],
+  ["stock_movements", "Movimentações de estoque"],
+  ["service_catalog", "Tabela de serviços"],
+  ["employees", "Equipe"],
 ] as const;
 
 type Check =
@@ -42,12 +49,17 @@ async function checkDatabase(): Promise<Check> {
   const started = performance.now();
   try {
     const db = getDb();
-    const now = await db.execute<{ agora: string }>(sql`select now()::text as agora`);
+    const now = await db.execute<{ epoch: number }>(
+      sql`select extract(epoch from now())::float8 as epoch`,
+    );
     const ms = Math.round(performance.now() - started);
     const counts = await Promise.all(
       TABLES.map(async ([table, label]) => ({ label, total: await countRows(table) })),
     );
-    return { ok: true, ms, serverTime: now.rows[0]?.agora ?? "", counts };
+    const epoch = Number(now.rows[0]?.epoch);
+    // Hora do banco no relógio da loja (Brasília), como o resto do sistema.
+    const serverTime = Number.isFinite(epoch) ? formatDateTime(new Date(epoch * 1000)) : "";
+    return { ok: true, ms, serverTime, counts };
   } catch (e) {
     // Detalhe só no log do servidor; a página não expõe mensagens internas.
     console.error("health check falhou", e);
@@ -75,7 +87,7 @@ export default async function SaudePage() {
                 <strong>Tempo da primeira consulta:</strong> {check.ms} ms
               </li>
               <li>
-                <strong>Hora do servidor do banco:</strong> {check.serverTime}
+                <strong>Hora do banco (Brasília):</strong> {check.serverTime}
               </li>
             </ul>
             <h3 style={{ marginTop: 20 }}>Registros por tabela</h3>

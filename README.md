@@ -29,7 +29,7 @@ de IA). Reconstrução do protótipo do desafio do Grupo Virtù, com o diagnóst
 | Tela | Para quê |
 |---|---|
 | **Hoje** | Ações vencidas e do dia (follow-up de orçamento, pós-venda, retorno, confirmar agendamento), agenda e orçamentos aguardando — com WhatsApp/ligar em um toque |
-| **Clientes** | Busca tolerante (sem acento, telefone por dígitos, placa sem traço), ficha com veículos, orçamentos, linha do tempo e o que veio do Vito |
+| **Clientes** | Busca tolerante (sem acento, telefone por dígitos, placa sem traço), ficha com veículos, orçamentos, linha do tempo e o que veio do Vito. Na ficha: registrar atendimento, próxima ação, orçamento (aprovar/recusar com motivo), serviço, agendamento (confirmar/cancelar) e veículo; a etapa do funil acompanha esses fatos |
 | **Revisão** | O que a IA não pôde aplicar sozinha: confiança baixa, cliente desconhecido, dinheiro, conflito com edição do gestor — aprovar, corrigir ou rejeitar |
 | **Conversas** | Telegram da oficina: o Vito responde sozinho só horário, endereço e o agendamento do sistema; o resto vai para o dono, que responde por aqui (ou pela ficha) |
 | **Estoque** | Pneus e itens, entrada de mercadoria, ajuste por contagem, histórico e alerta de estoque baixo; baixa automática ao registrar um serviço com itens na ficha |
@@ -38,8 +38,9 @@ de IA). Reconstrução do protótipo do desafio do Grupo Virtù, com o diagnóst
 | **Simulador** (teste, fora do menu) | 7 conversas fictícias que chamam o endpoint real dos agentes, sem precisar de IA — em `/simulador` ou **Mais → Ferramentas de teste** |
 
 Regras automáticas (`lib/rules/`): orçamento sem resposta em 3 dias → follow-up (R1); serviço feito →
-pós-venda em 7 dias (R2) e retorno comercial em 180 dias (R3); agendamento → confirmar na véspera
-(R4). Idempotentes: rodar de novo não duplica tarefa.
+pós-venda em 7 dias (R2) e retorno comercial em 180 dias (R3); agendamento → confirmar na véspera,
+nunca antes de hoje (R4; concluir a ação confirma o agendamento). Idempotentes: rodar de novo não
+duplica tarefa. Datas são conferidas no servidor (nada nasce atrasado nem "feito" no futuro).
 
 ## Agentes de IA
 
