@@ -3,7 +3,7 @@ import { conversationChannel } from "@/lib/review/queries";
 
 describe("canal da sugestão na Revisão", () => {
   it.each([
-    ["tg-2110732003-e309530b", "Telegram"],
+    ["tg-123456789-e309530b", "Telegram"],
     ["sim-orcamento-cliente-novo-2026-10-16", "WhatsApp (simulador)"],
     ["conv-ricardo", "WhatsApp"],
     [null, "WhatsApp"],
