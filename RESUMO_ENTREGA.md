@@ -22,7 +22,7 @@ servia para dados reais. O diagnóstico completo está em [`docs/DIAGNOSTICO.md`
 | Datas | histórico em UTC; demo "congelada" em 24/09 | fuso de São Paulo em todo lugar; seed relativo a hoje + "Reiniciar demonstração" |
 | Acessibilidade | Lighthouse 89–95; **597** falhas de contraste no axe | Lighthouse **100** em todas as telas; axe **sem violações** em 375 e 1280 px, nos temas **claro e escuro**; reflow em 320 px |
 | Celular | tabela e kanban rolando de lado; menu que não fecha | barra inferior, cards, alvos de 44 px |
-| Testes | nenhum | 294 de unidade/integração, 13 E2E com axe, banco de testes da IA, teste exploratório como usuário |
+| Testes | nenhum | 313 de unidade/integração, 13 E2E com axe, banco de testes da IA, teste exploratório como usuário |
 
 Prints: antes em [`docs/diagnostico-screenshots/`](docs/diagnostico-screenshots/), depois em
 [`docs/screenshots/depois/`](docs/screenshots/depois/) (375 e 1280 px de cada tela).
@@ -31,7 +31,7 @@ Prints: antes em [`docs/diagnostico-screenshots/`](docs/diagnostico-screenshots/
 
 | Tipo | Ferramenta | Resultado |
 |---|---|---|
-| Unidade + integração | Vitest; Postgres em memória (PGlite) com as **migrações reais** | **294 passando**: datas/fuso, telefone, busca, auth, regras R1–R4, endpoint (401/413/415/422, idempotência, matching, decisão, conflito com edição humana, eventos simultâneos), revisão, extração da IA, estoque, Telegram, formulários e fluxos do teste como usuário |
+| Unidade + integração | Vitest; Postgres em memória (PGlite) com as **migrações reais** | **313 passando**: datas/fuso, telefone, busca, auth, regras R1–R4, endpoint (401/413/415/422, idempotência, matching, decisão, conflito com edição humana, eventos simultâneos), revisão, extração da IA, estoque, Telegram, formulários e fluxos do teste como usuário |
 | E2E | Playwright (Chrome) | **13 passando** localmente e **contra a produção**: concluir ação → linha do tempo; simulador → aplica, reenvio ignorado, alto impacto → revisão → aprovar → ficha; serviço feito pelo Vito → baixa de estoque |
 | Teste como usuário | Playwright num build de produção, tela por tela, com erros de propósito | ~25 achados, todos corrigidos com teste — ex.: "1.840" virava R$ 1,84; formulário perdia as escolhas após um erro; data passada derrubava a página ([AUDITORIA, etapa 15](docs/AUDITORIA.md), D60) |
 | Acessibilidade automática | axe-core (WCAG 2.0/2.1/2.2 A e AA) | **0 violações** em login, Hoje, Clientes, Ficha, Novo/Editar cliente, Mais, Revisão, Simulador, Conversas, Estoque, produto, Serviços, Equipe e funcionário, em 375 e 1280 px, nos temas claro e escuro; também na Revisão em modo de correção e nas páginas de "não encontrado" |
@@ -95,7 +95,7 @@ Detalhes em [`docs/AGENTES_IA.md`](docs/AGENTES_IA.md). Resumo:
 
 ## Principais decisões
 
-Todas em [`DECISOES.md`](DECISOES.md) (D1–D64), com contexto, opções e motivo. As que mais pesaram:
+Todas em [`DECISOES.md`](DECISOES.md) (D1–D65), com contexto, opções e motivo. As que mais pesaram:
 
 - **D2 — Next.js + Vercel + Neon + Drizzle:** o vinext do original é beta e o limite de 10 ms de
   CPU do Workers gratuito é risco para renderizar no servidor; Next usa a mesma estrutura `app/`,
